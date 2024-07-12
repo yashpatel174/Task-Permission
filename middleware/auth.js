@@ -28,20 +28,19 @@ const checkPermission = (action) => {
 
         const user = await userSchema.findById(req.params.id).populate("admin").populate("user")
 
-        if(req.user.role == "admin") return next();
+        if(req.user.role == "superAdmin") return next();
 
         if(user.permission && user.permission.get(action)) return next();
 
         const isAdmin = user.admin.some(admin => admin._id.toString() === req.user.id)
         const isUser = user.user.some(user => user._id.toString() === req.user.id)
 
-        if(!isAdmin && !isUser) return next();
+        if(!isAdmin || !isUser) return next();
 
         return res.status(400).send({message: "You are not provided the permission."})
 
         }
     
-
 }
 
 
