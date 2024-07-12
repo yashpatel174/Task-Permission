@@ -33,4 +33,25 @@ router.post('/toggle', verifyToken, async (req, res) => {
 
 })
 
+
+
+router.post("/CRUD", (req, res, next) => {
+
+try {
+
+    const superAdminRole = req.params.role("superadmin")
+    const adminRole = req.params.role("admin")
+    const userRole = req.params.role("user")
+
+
+    const adminId = req.params._id
+    
+
+
+} catch (error) {
+    
+}
+
+})
+
 export default router;

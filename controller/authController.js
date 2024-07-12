@@ -11,7 +11,6 @@ const registerController = async (req, res) => {
     try {
 
         const hashedPassword = await bcrypt.hash(password, 10);
-
         const userRegister = userSchema({userName, password:hashedPassword, role, admin, user});
         await userRegister.save();
 
@@ -41,7 +40,7 @@ const registerController = async (req, res) => {
 
 // Login user with authentication
 const loginController = async (req, res) => {
-    const {userName, password} = req.body;
+    const {userName, password} = req.body;  
     
     try {
         const user = await userSchema.findOne({userName})
