@@ -138,7 +138,6 @@ const deleteModule = async (req, res, e) => {
 
 try {
 
-    e.preventDefault();
 
     const {moduleName} = req.body;
 

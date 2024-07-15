@@ -6,27 +6,21 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    password: {
-        type: String,
-        required: true
-    },
     role: {
         type: String,
-        enum: ['superAdmin', 'admin', 'user'],
-        required: true
+        enum: ['superAdmin', 'admin'],
+        default: 'user'
     },
-    admin: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user'
-    }],
-    user: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user'
-    }],
-    permission: {
-        type: Map,
-        of: Boolean
-    }
+    permissions: {
+        type: [String],
+        defauolt: []
+    },
+    subUsers: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    ]
 });
 
 export default mongoose.model('Users', userSchema);

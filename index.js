@@ -1,9 +1,9 @@
 import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import authRoute from './route/auth.js';
-import permissionRoute from './route/permission.js';
-import moduleRoute from './route/module.js';
+// import adminRoute from "./route/adminRoute.js";
+import userRoute from "./route/userRoute.js";
+import moduleRoute from "./route/moduleRoute.js"
 const app = express();
 
 // Environment configuration
@@ -14,9 +14,9 @@ app.use(express.json());
 
 
 // Routes
-app.use("/auth", authRoute);
-app.use("/permissions", permissionRoute);
-app.use("/module", moduleRoute);
+// app.use("/admin", adminRoute);
+app.use("/users", userRoute);
+app.use("/modules", moduleRoute);
 
 
 // Database connection
