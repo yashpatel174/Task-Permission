@@ -1,197 +1,129 @@
-// import User from '../model/user.js';
+import userSchema from '../model/userModel.js';
+import groupSchema from "../model/groupModel.js"
 
-
-// // Permissions to users
-// const grantUser = async (req, res, next) => {
-
-//     try {
-
-//         const {userId, permission} = req.body;
-//         const user = await User.findById(userId);
-
-//         if(!user) return res.status(404).send({message: "User not found"})
-
-//         user.permissions.push(permission);
-//         await user.save();
-            
-//         res.status(200).send({message: "Permission granted successfully."});
-        
-//     } catch (error) {
-//         res.status(500).send({message: "Failed to grant permission."})
-//     }
-
-// }
-
-
-
-// const revokeUser = async (req, res, next) => {
-
-// try {
-
-//     const {userId, permission} = req.body;
-//     const user = await user.findById(userId);
-
-//     if(!user) return res.status(404).send({message: "User not found"})
-
-//         user.permissions = user.permissions.filter((perm) => perm !== permission);
-
-//     await user.save();
-
-//     res.status(200).send(user)
-
-// } catch (error) {
-//     res.status(500).send({message: "Failed to revoke permission"});
-// }
-
-// }
-
-// export {grantUser, revokeUser}
-
-
-// ===========================================================================================================================
-
-
-
-// import userData from "../data/userData.js"
-
-// const grantPermission = (req, res) => {
-
-//     const {userName, permission} = req.body;
-//     const user = user.userData.find(user => user.userName = userName)
-
-//     if(user && (req.user.permissions.includes('manage_users' || 'manage_sub_users') || req.user.role === 'admin')) {
-//         user.permissions.push(permission);
-//         res.status(200).send(user)
-//     } else {
-//         res.status(400).send({message: "Forbidden while granting permission."})
-//     }
-
-// }
-
-// const revokePermission = (req, res) => {
-
-//     const {userName, permission} = req.body;
-//     const user = user.userData.find(user => user.userName = userName)
-
-//     if(user && (req.user.permissions.includes('manage_users' || 'manage_sub_users') || req.user.role === 'admin')) {
-//         user.permissions = user.permissions.filter((perm) => perm!== permission);
-//         res.status(200).send(user)
-//     } else {
-//         res.status(400).send({message: "Forbidden while revoking permission."})
-//     }
-
-// }
-
-
-// export {grantPermission, revokePermission}
-
-
-
-// ===========================================================================================================================
-
-import userData from "../data/userData.js"
-
-const isAdmin = (user) => user.role === "admin"
-
-
-const isParentUser = (parentName, userName) => {
-    const parentUser = userData.find(user => user.name === parentName)
-    return parentUser && parentUser.subUsers.includes(userName)
-}
-
-
-const grantPermission = (req, res) => {
-
-    const {name, permission} = req.body;
-    const userToGrant = userData.find(user => user.name === name)
+const createGroup = async () => {
+    const {groupName} = req.body;
 
     try {
-        
-    if(!userToGrant) {
-        return res.status(404).send({message: "You are failed to grant this permission."})
-    }
+    
+        const group = groupSchema(groupName);
+        await group.save();
 
-    if (typeof name !== 'string' || typeof permission !== 'string') {
-        return res.status(400).send({ message: "Invalid input types. 'name' and 'permission' should be strings." });
-    }
+        if(!group) res.send({message: "Group not found, Please create it."})
 
-    // admin can grant permission to any user
-    if(isAdmin (req.user)) {
-        if (!isAdmin (req.user)) {
-            if (!userToGrant.permissions.includes(permission)) {
-                userToGrant.permissions.push(permission)
-            }
-            res.status(200).send(userToGrant)
-        } else {
-            return res.status(400).send(error => {
-                message: "You don't have the permission to grant this permission.",
-                error.message
-            });
-        }
-    }
+        res.status(200).send({
+            success: true,
+            message: "Group created successfully",
+            group
+        })
 
-    // parent user can grant to their sub users only.
-    if (isParentUser(req.user.name, name)) {
-
-        // If the parent user has permission, they are trying to grant
-        if (req.user.permissions.includes(permission)) {
-            if (!userToGrant.permissions.includes(permission)) {
-                userToGrant.permissions.push(permission);
-            }
-            return res.status(200).send(userToGrant);
-        } else {
-            res.status(400).send({message: "You don't have the permission to grant this permission."})
-        }
-    }
-
-} catch (error) {
-    res.status(400).send({
-        success: false,
-        message: "You are not permitted to grant this permission to your child.",
-        error: error.message
-    })  
-}
-
-}
-
-
-
-
-const revokePermission = (req, res) => {
-
-    const {name, permission} = req.body;
-    const userToRevoke = userData.find(user => user.name === name)
-
-    if(!userToRevoke) {
-        return res.status(404).send({message: "User not found"})
-    }
-
-    // Admin can revoke permission from any user
-    if (isAdmin(req.user)) {
-
-        userToRevoke.permissions = userToRevoke.permissions.filter(perm => perm !== permission)
-        return res.status(200).send({
-            message: "Permission revoked successfully"},
-            userToRevoke
-        )
-
-    }
-
-    // Parent user can revoke permissions from their usb-users only.
-    if(isParentUser(req.user.name, userName)) {
-        userToRevoke.permissions = userToRevoke.permissions.filter(perm => perm !== permission)
-        return res.status(200).send({
-            message: "Permission revoked successfully",
-            userToRevoke
+    } catch (error) {
+        res.status(500).send({
+            success: false,
+            message: "Error while creating group.",
+            error: error.message
         })
     }
+}
 
-    return res.status(403).send({
-        success: false,
-        message: "You don't have permission to revoke this permission.",
-        error: error.message
-    })
+const deleteGroup = async (req, res) => {
+
+    const {groupname} = req.body;
+
+    try {
+
+        // check if the users exist in group
+        const usersInGroup = await groupSchema.find(groupname, {members: {$exists: true}});
+
+        const group = await groupSchema.find(groupname)
+
+        if (!group) return res.status(400).send({message: "Group does not exist, so you may create it."})
+
+        if(usersInGroup) {
+            return res.status(400).send({message: "Group contains users, cannot delete."})
+        } else {
+            const deleteGroup = await groupSchema.findOneAndDelete(groupname);
+            res.status(200).send({message: "Group deleted successfully."})
+        }
+
+    } catch (error) {
+
+        res.status(500).send({
+            success: false,
+            message: "Error while deleting group.",
+            error: error.message
+        })
+      
+    }
 
 }
 
-export {grantPermission, revokePermission}
+const addUsers = async (req, res) => {
+
+    const {groupname, username} = req.body;
+
+    try {
+
+        const group = await groupSchema.findOne(groupname);
+        const user = await userSchema.findOne(username);
+
+        if(!group || !user) {
+            return res.status(404).send({
+                success: false,
+                message: "Group or user not found."
+            })
+        }
+
+        group.members.push(user.username);
+        user.group.groupname = group.groupname
+
+        await group.save();
+        await user.save();
+
+        res.send({message: "User added to the group successfully."});
+
+    } catch (error) {
+     
+        res.status(500).send({
+            success: false,
+            message: "Error while adding user to group.",
+            error: error.message
+        })
+
+    }
+
+}
+
+const removeUsers = async (req, res) => {
+
+    const {groupname, username} = req.body;
+
+    try {
+
+        const group = await groupSchema.findOne(groupname);
+        const user = await userSchema.findOne(username);
+
+        if(!group || !user) {
+            return res.status(404).send({
+                success: false,
+                message: "Group or user not found."
+            })
+        }
+
+        group.members.pop(user.username);
+        user.group.groupname = group.groupname
+
+        await group.save();
+        await user.save();
+
+        res.send({message: "User removed from the group successfully."});
+    } catch (error) {
+        res.status(500).send({
+            success: false,
+            message: "Error while removing user from the group.",
+            error: error.message
+        })
+    }
+}
+
+export { createGroup, deleteGroup, addUsers, removeUsers }
