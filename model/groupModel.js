@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 const groupSchema = new mongoose.Schema({
-    groupname: {
+    groupName: {
         type: String,
-        required: true,
+        required: [true, "Group name is required."],
         unique: true,
     },
     members: [{

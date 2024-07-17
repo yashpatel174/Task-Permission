@@ -2,7 +2,7 @@ import express from 'express'
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import authRoute from './route/authRoute.js';
-import userRoute from './route/userRoute.js';
+import groupRoute from "./route/groupRoute.js"
 import moduleRoute from './route/moduleRoute.js';
 const app = express();
 
@@ -17,7 +17,7 @@ mongoose.connect(process.env.DB_CONNECTION).then(console.log("Database connected
 
 // Routes
 app.use('/auth', authRoute);
-app.use('/user', userRoute);
+app.use('/group', groupRoute);
 app.use('/modules', moduleRoute);
 
 

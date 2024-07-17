@@ -8,6 +8,10 @@ const moduleSchema = new mongoose.Schema({
     moduleId: {
         type: Number,
         unique: true,
+    },
+    modifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
 })
 

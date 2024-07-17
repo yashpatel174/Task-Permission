@@ -4,15 +4,13 @@ import JWT from 'jsonwebtoken';
 
 const register = async (req, res) => {
 
-    const {username, password} = req.body;
+    const {userName, password} = req.body;
 
     try {
 
-        const saltRound = 10
-
-        const hashedPassword = await bcrypt.hash(password, saltRound);
+        const hashed = await bcrypt.hash(password, 10)
         
-        const user = userSchema({username, password:hashedPassword});
+        const user = userSchema({userName, password:hashed});
         await user.save();
 
         if(!user) res.status(403).send({message: 'User not created.'})
@@ -36,35 +34,45 @@ const register = async (req, res) => {
 }
 
 const login = async (req, res) => {
-    const { username, password } = req.body;
+    const { userName, password } = req.body;
+
+    if(!userName || !password) {
+        res.status(400).send({
+            success: false,
+            message: 'userName and password are required.'
+        })
+    }
 
     try {
-        const user = await userSchema.findOne({ username });
+
+        const user = await userSchema.findOne({userName});
 
         // Check if user exists
         if (!user) {
             return res.status(400).send({
                 success: false,
-                message: 'Invalid username or password.',
+                message: 'User not registered.',
                 error: (error => error.message)
             });
         }
 
         // Compare password
-        const comparePassword = await bcrypt.compare(password, user.password);
+        const validPassword = await bcrypt.compare(password, user.password);
 
-        if (!comparePassword) {
-            return res.status(400).send({
-                success: false,
-                message: 'Invalid username or password.',
-                error: (error => error.message)
-            });
-        }
+        // if (!validPassword) {
+        //     return res.status(400).send({
+        //         success: false,
+        //         message: 'Invalid userName or password.',
+        //         error: (error => error.message)
+        //     });
+        // }
+
+        const secretKey = process.env.SECRET_KEY
 
         // Create token
         const token = JWT.sign(
-            { name: user.username, role: user.role },
-            process.env.JWT_SECRET,
+            { name: user.userName, role: user.role },
+            secretKey,
             { expiresIn: process.env.JWT_EXPIRATION }
         );
 
