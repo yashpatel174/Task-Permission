@@ -1,16 +1,22 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const groupSchema = new mongoose.Schema({
-    groupName: {
-        type: String,
-        required: [true, "Group name is required."],
-        unique: true,
+  groupName: {
+    type: String,
+    required: [true, "Group name is required."],
+    unique: true,
+  },
+  groupPassword: {
+    type: String,
+    required: [true, "Group password is required"],
+  },
+  members: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
-    members: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    }],
-    permissions: [{type: String}]
-})
+  ],
+  permissions: [{ type: String }],
+});
 
-export default mongoose.model('Group', groupSchema);
+export default mongoose.model("Group", groupSchema);
