@@ -1,27 +1,24 @@
-import moduleModel from "../model/moduleModel.js";
+import moduleSchema from "../model/moduleModel.js";
 
 // Create a new module
 
-const createModule = async (req, res) => {
-  const createdBy = req.user.userName || req.group.groupName;
-
+const createModule = async (req, res, next) => {
   // Check if the users have permission to access this operation
-  if (!rqe.user.permissions.includes("CRUD")) {
+  if (!req.user?.permissions.includes("CRUD")) {
     return res.status(403).send({ message: "You do not have access." });
   }
 
   try {
     const { moduleName, moduleId } = req.body;
 
-    const module = new moduleModel({ moduleName, moduleId, createdBy });
-    module.save();
+    const module = new moduleSchema({ moduleName, moduleId });
+    await module.save();
 
     if (!module) res.status(404).send({ message: "Module not found" });
 
     res.status(200).send({
       success: true,
-      message: "Module created successfully",
-      module,
+      message: `You created module: ${module.moduleName}`,
     });
   } catch (error) {
     res.status(500).send({
@@ -41,7 +38,7 @@ const getAllModules = async (req, res) => {
   }
 
   try {
-    const modules = await moduleModel.find({});
+    const modules = await moduleSchema.find({});
 
     if (!modules) res.status(404).send({ message: "No modules found" });
 
@@ -57,22 +54,22 @@ const getAllModules = async (req, res) => {
 
 // get single module
 
-const getSingleModule = (req, res) => {
+const getSingleModule = async (req, res) => {
   // Check if the users have permission to access this operation
   if (!rqe.user.permissions.includes("CRUD")) {
     return res.status(403).send({ message: "You do not have access." });
   }
 
   try {
-    const { name } = req.params;
+    const { moduleName } = req.params;
 
-    const module = moduleSchema.findOne({ name });
+    const module = await moduleSchema.findOne({ moduleName });
 
     if (!module) res.status(404).send({ message: "Module not found" });
 
     res
       .status(200)
-      .send({ message: `You found a module: ${module.moduleName}` });
+      .send({ message: `You found a module: ${module.moduleName}`, module });
   } catch (error) {
     res.status(500).send({
       success: false,
@@ -85,29 +82,27 @@ const getSingleModule = (req, res) => {
 // update module
 
 const updateModule = async (req, res) => {
-  const createdBy = req.user.userName || req.group.groupName;
-
   // Check if the users have permission to access this operation
   if (!rqe.user.permissions.includes("CRUD")) {
     return res.status(403).send({ message: "You do not have access." });
   }
 
+  const { moduleName } = req.params;
+  const { newName, newId } = req.body;
+
   try {
-    const { name } = req.params;
-
-    const { moduleName, moduleId } = req.body;
-
-    const module = await moduleModel.findOneAndUpdate(
-      name,
-      { moduleName, moduleId },
-      createdBy,
-      { new: true }
+    const module = await moduleSchema.findOneAndUpdate(
+      { moduleName },
+      { moduleName: newName, moduleId: newId },
+      { new: true, runValidators: true }
     );
 
-    if (!module)
-      return res.status(403).send({ message: "Not able to find module." });
-
-    if (!module) res.status(404).send({ message: "Module not found" });
+    if (!module) {
+      return res.status(404).send({
+        success: false,
+        message: "Module not found.",
+      });
+    }
 
     res.status(200).send({
       success: true,
@@ -117,7 +112,7 @@ const updateModule = async (req, res) => {
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error while updating module.",
+      message: "An error occurred while updating the module",
       error: error.message,
     });
   }
@@ -132,9 +127,9 @@ const deleteModule = async (req, res) => {
   }
 
   try {
-    const { name } = req.params;
+    const { moduleName } = req.params;
 
-    const module = await moduleModel.findOneAndDelete(name);
+    const module = await moduleSchema.findOneAndDelete({ moduleName });
 
     if (!module) res.status(404).send({ message: "Module not found" });
 

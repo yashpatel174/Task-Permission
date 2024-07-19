@@ -8,8 +8,6 @@ import bcrypt from "bcrypt";
 const grantPermission = async (req, res) => {
   const { targetId, targetType, permission } = req.body;
 
-  const isAdmin = req.user.role === "admin";
-
   try {
     if (targetType === "Group") {
       // verify as an admin
@@ -74,8 +72,6 @@ const grantPermission = async (req, res) => {
 
 const revokePermission = async (req, res) => {
   const { targetId, targetType, permission } = req.body;
-
-  const isAdmin = req.user.role === "admin";
 
   try {
     if (targetType === "Group") {
@@ -236,7 +232,7 @@ const createGroup = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const group = await groupSchema({ groupName, groupPassword: hashed });
+    const group = await groupSchema({ groupName, password: hashed });
     await group.save();
 
     if (!group)
@@ -280,15 +276,22 @@ const loginGroup = async (req, res) => {
       });
     }
 
+    if (!password || !group.password) {
+      return res.status(400).send({
+        success: false,
+        message: "Password is missing.",
+      });
+    }
+
     // Compare password
     const validPassword = await bcrypt.compare(password, group.password);
 
-    // if (!validPassword) {
-    //   return res.status(400).send({
-    //     success: false,
-    //     message: "Invalid userName or password.",
-    //   });
-    // }
+    if (!validPassword) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid userName or password.",
+      });
+    }
 
     const secretKey = process.env.SECRET_KEY;
 
@@ -376,7 +379,7 @@ const addUsers = async (req, res, next) => {
 
     res.send({
       success: true,
-      message: `User added to the group successfully.`,
+      message: `${user.userName} added to the ${group.groupName} successfully.`,
     });
   } catch (error) {
     res.status(500).send({
@@ -413,7 +416,9 @@ const removeUsers = async (req, res) => {
 
     // group.save();
 
-    res.send({ message: "User removed from the group successfully." });
+    res.send({
+      message: `${user.userName} removed from the ${group.groupName} successfully.`,
+    });
   } catch (error) {
     res.status(500).send({
       success: false,

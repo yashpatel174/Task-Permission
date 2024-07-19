@@ -18,21 +18,36 @@ const router = express.Router();
 
 router.post("/create", authMiddleware, checkPermission("CRUD"), createModule);
 router.get("/", authMiddleware, checkPermission("CRUD"), getAllModules);
-router.get("/", authMiddleware, checkPermission("CRUD"), getSingleModule);
-router.patch("/update", authMiddleware, checkPermission("CRUD"), updateModule);
-router.delete("/create", authMiddleware, checkPermission("CRUD"), deleteModule);
+router.get(
+  "/:moduleName",
+  authMiddleware,
+  checkPermission("CRUD"),
+  getSingleModule
+);
+router.patch(
+  "/update/:moduleName",
+  authMiddleware,
+  checkPermission("CRUD"),
+  updateModule
+);
+router.delete(
+  "/delete/:moduleName",
+  authMiddleware,
+  checkPermission("CRUD"),
+  deleteModule
+);
 
 // Grant and revoke permissions endpoints
 router.post(
   "/permissions/grant",
   authMiddleware,
-  checkPermission("granted"),
+  checkPermission("grant"),
   grantPermission
 );
 router.post(
   "/permissions/revoke",
   authMiddleware,
-  checkPermission("revoked"),
+  checkPermission("revoke"),
   revokePermission
 );
 

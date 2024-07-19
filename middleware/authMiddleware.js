@@ -18,7 +18,13 @@ import userSchema from "../model/userModel.js";
 
 //     req.token = token;
 //     req.user = user;
-//     next();
+//     // next();
+
+//     if (req.user.role === "admin") {
+//       return next();
+//     } else {
+//       res.send({ message: "Only admins has the access to this." });
+//     }
 //   } catch (error) {
 //     res.status(401).send({
 //       success: false,
@@ -28,10 +34,16 @@ import userSchema from "../model/userModel.js";
 //   }
 // };
 
-const authMiddleware = async (req, res, next) => {
-  const token = req.header("Authorization").replace("Bearer ", "");
+const authMiddleware = async (req, res) => {
+  const token = req.header("Authorization");
 
   if (!token) res.send({ message: "Token is not provided." });
+
+  // if (req.user?.role == "admin") {
+  //   return next();
+  // } else {
+  //   res.send({ message: "Only admin can access." });
+  // }
 
   try {
     const decoded = JWT.verify(token, process.env.SECRET_KEY);
@@ -44,18 +56,34 @@ const authMiddleware = async (req, res, next) => {
     req.token = token;
     req.user = user;
     next();
+
+    if ((req.user.role = "admin")) {
+      return next();
+    } else {
+      return res.status(403).send({ message: "Only admin can access." });
+    }
   } catch (error) {
-    res.status(401).send({ error: "Please authenticate." });
+    res.status(401).send({
+      success: false,
+      message: "Please authenticate.",
+      error: error.message,
+    });
   }
 };
 
 const checkPermission = (permission) => {
   return async (req, res, next) => {
     const user = req.user;
+
+    if (isAdmin(user)) {
+      return next();
+    }
+
     const userPermissions = user?.permissions;
     const groupPermissions = user?.group ? user.group.permissions : [];
 
     if (
+      isAdmin(user) ||
       userPermissions?.includes(permission) ||
       groupPermissions?.includes(permission)
     ) {

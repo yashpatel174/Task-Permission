@@ -60,7 +60,6 @@ const login = async (req, res) => {
       return res.status(400).send({
         success: false,
         message: "User not registered.",
-        error: (error) => error.message,
       });
     }
 
@@ -83,9 +82,11 @@ const login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRATION }
     );
 
+    // await token.save();
+
     res.status(200).send({
       success: true,
-      message: "User logged in successfully",
+      message: `${user.userName} logged in successfully`,
       token: token,
     });
   } catch (error) {

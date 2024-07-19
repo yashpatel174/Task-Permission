@@ -6,7 +6,7 @@ const groupSchema = new mongoose.Schema({
     required: [true, "Group name is required."],
     unique: true,
   },
-  groupPassword: {
+  password: {
     type: String,
     required: [true, "Group password is required"],
   },
