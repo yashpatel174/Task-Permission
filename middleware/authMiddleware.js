@@ -1,4 +1,4 @@
-import JWT from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import userSchema from "../model/userModel.js";
 
 // const authMiddleware = async (req, res, next) => {
@@ -34,30 +34,29 @@ import userSchema from "../model/userModel.js";
 //   }
 // };
 
-const authMiddleware = async (req, res) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization");
 
-  if (!token) res.send({ message: "Token is not provided." });
-
-  // if (req.user?.role == "admin") {
-  //   return next();
-  // } else {
-  //   res.send({ message: "Only admin can access." });
-  // }
+  if (!token) {
+    return res.status(401).send({ message: "Token is not provided." });
+  }
 
   try {
-    const decoded = JWT.verify(token, process.env.SECRET_KEY);
-    const user = await userSchema.findById(decoded._id).populate("Group");
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    console.log("decoded token:", decoded);
+
+    const user = await userSchema.findOne(decoded._id).populate("group");
 
     if (!user) {
-      throw new Error();
+      throw new Error("User not found.");
     }
 
     req.token = token;
     req.user = user;
-    next();
+    console.log("Token:", token);
+    console.log("User:", req.user);
 
-    if ((req.user.role = "admin")) {
+    if (user?.role == "admin") {
       return next();
     } else {
       return res.status(403).send({ message: "Only admin can access." });
@@ -74,10 +73,6 @@ const authMiddleware = async (req, res) => {
 const checkPermission = (permission) => {
   return async (req, res, next) => {
     const user = req.user;
-
-    if (isAdmin(user)) {
-      return next();
-    }
 
     const userPermissions = user?.permissions;
     const groupPermissions = user?.group ? user.group.permissions : [];
