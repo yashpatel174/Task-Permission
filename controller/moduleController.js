@@ -4,6 +4,7 @@ import moduleSchema from "../model/moduleModel.js";
 
 const createModule = async (req, res, next) => {
   // Check if the users have permission to access this operation
+  console.log(req.user.role);
   if (!req.user?.permissions.includes("CRUD")) {
     return res.status(403).send({ message: "You do not have access." });
   }

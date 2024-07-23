@@ -53,6 +53,7 @@ const authMiddleware = async (req, res, next) => {
 
     req.token = token;
     req.user = user;
+    console.log("decoded token:", decoded);
     console.log("Token:", token);
     console.log("User:", req.user);
 
@@ -77,8 +78,9 @@ const checkPermission = (permission) => {
     const userPermissions = user?.permissions;
     const groupPermissions = user?.group ? user.group.permissions : [];
 
+    if (user?.role == "admin") return next();
+
     if (
-      isAdmin(user) ||
       userPermissions?.includes(permission) ||
       groupPermissions?.includes(permission)
     ) {
