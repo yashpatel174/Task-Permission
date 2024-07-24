@@ -3,12 +3,6 @@ import moduleSchema from "../model/moduleModel.js";
 // Create a new module
 
 const createModule = async (req, res, next) => {
-  // Check if the users have permission to access this operation
-  console.log(req.user.role);
-  if (!req.user?.permissions.includes("CRUD")) {
-    return res.status(403).send({ message: "You do not have access." });
-  }
-
   try {
     const { moduleName, moduleId } = req.body;
 
@@ -33,11 +27,6 @@ const createModule = async (req, res, next) => {
 // get all modules
 
 const getAllModules = async (req, res) => {
-  // Check if the users have permission to access this operation
-  if (!rqe.user.permissions.includes("CRUD")) {
-    return res.status(403).send({ message: "You do not have access." });
-  }
-
   try {
     const modules = await moduleSchema.find({});
 
@@ -56,11 +45,6 @@ const getAllModules = async (req, res) => {
 // get single module
 
 const getSingleModule = async (req, res) => {
-  // Check if the users have permission to access this operation
-  if (!rqe.user.permissions.includes("CRUD")) {
-    return res.status(403).send({ message: "You do not have access." });
-  }
-
   try {
     const { moduleName } = req.params;
 
@@ -83,11 +67,6 @@ const getSingleModule = async (req, res) => {
 // update module
 
 const updateModule = async (req, res) => {
-  // Check if the users have permission to access this operation
-  if (!rqe.user.permissions.includes("CRUD")) {
-    return res.status(403).send({ message: "You do not have access." });
-  }
-
   const { moduleName } = req.params;
   const { newName, newId } = req.body;
 
@@ -122,11 +101,6 @@ const updateModule = async (req, res) => {
 // delete module
 
 const deleteModule = async (req, res) => {
-  // Check if the users have permission to access this operation
-  if (!rqe.user.permissions.includes("CRUD")) {
-    return res.status(403).send({ message: "You do not have access." });
-  }
-
   try {
     const { moduleName } = req.params;
 

@@ -3,7 +3,7 @@ import groupSchema from "../model/groupModel.js";
 import JWT from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
-//* ====================================================== Grant Permission =================================================
+//* ================================================== Grant Permission ============================================
 
 const grantPermission = async (req, res) => {
   const { targetId, targetType, permission } = req.body;
@@ -230,9 +230,7 @@ const createGroup = async (req, res) => {
         message: `Group already exists as the same name: ${existingGroup.groupName}.`,
       });
 
-    const hashed = await bcrypt.hash(password, 10);
-
-    const group = await groupSchema({ groupName, password: hashed });
+    const group = await groupSchema({ groupName, password });
     await group.save();
 
     if (!group)
