@@ -340,49 +340,133 @@ const deleteGroup = async (req, res) => {
 
 //* ====================================================== Add users =================================================
 
-const addUsers = async (req, res, next) => {
+// const addUsers = async (req, res, next) => {
+//   const { groupName, userName } = req.body;
+
+//   if (!groupName || !userName)
+//     return res
+//       .status(403)
+//       .send({ message: "The given fields must be filled." });
+
+//   try {
+//     const group = await groupSchema.findOne({ groupName });
+//     const user = await userSchema.findOne({ userName });
+
+//     if (!group || !user) {
+//       return res.status(404).send({
+//         success: false,
+//         message: "Module not exist.",
+//       });
+//     }
+
+//     if (!user) {
+//       group.members = group.members.filter((member) => member._id !== user._id);
+//       await group.save();
+//       return res
+//         .status(404)
+//         .send({ message: "User not exist, hence removed from group." });
+//     }
+
+//     const userId = user._id.toString();
+//     const groupId = group._id.toString();
+
+//     if (!group.members.includes(userId)) {
+//       group.members?.push(userId);
+//       await group.save();
+//     }
+//     console.log(group, "ggggggggggggggg");
+//     console.log(group.members, "mmmmmmmmmmmmmmm");
+
+//     if (!user.group.includes(groupId)) {
+//       user.group?.push(groupId);
+//       await user.save();
+//     }
+//     console.log(user, "uuuuuuuuuuuuu");
+//     console.log(user.group, "uuuuuuuuuuuuugggggggggggggg");
+
+//     // res.send({
+//     //   success: true,
+//     //   message: `${user.userName} added to the ${group.groupName} successfully.`,
+//     // });
+//   } catch (error) {
+//     res.status(500).send({
+//       success: false,
+//       message: "Error while adding user to group.",
+//       error: error.message,
+//     });
+//   }
+// };
+
+const addUsers = async (req, res) => {
   const { groupName, userName } = req.body;
 
-  if (!groupName || !userName)
+  if (!userName || !groupName) {
     return res
-      .status(403)
-      .send({ message: "The given fields must be filled." });
+      .status(400)
+      .send({ message: "Username and group name are required." });
+  }
 
   try {
-    const group = await groupSchema.findOne({ groupName });
+    // Find the user and group by their names
     const user = await userSchema.findOne({ userName });
+    const group = await groupSchema.findOne({ groupName });
 
-    if (!group || !user) {
-      return res.status(404).send({
-        success: false,
-        message: "Group or user not found.",
-      });
+    if (!user) {
+      return res.status(404).send({ message: "User not found." });
     }
 
-    group.members?.push(user);
-    user.group?.groupName === group.groupName;
+    if (!group) {
+      return res.status(404).send({ message: "Group not found." });
+    }
 
-    await group.save();
+    //! 1st try
+    // // Check if user is an admin
+    // if (user.role !== "admin") {
+    //   return res.status(403).send({ message: "This user is not an admin." });
+    // } else {
+    //   // Add group to Admin's groups array if not already present
+    //   if (!user.group.includes(group._id.toString())) {
+    //     user.group?.push(group._id.toString());
+    //   } else {
+    //     return res.send({
+    //       message: "Group already added to admin group list.",
+    //     });
+    //   }
+    // }
+
+    //! 2nd try
+    // Initialize user's groups array if undefined
+    // if (!user.group) {
+    //   user.group = [];
+    // }
+    console.log(user, "userrrrrrrrrrrr");
+    console.log(user?.group), "reerererre";
+
+    //* Final Try
+    // Add user to group's members array if not already present
+    if (!group.members?.includes(user._id.toString())) {
+      group.members?.push(user._id.toString());
+    }
+
+    // Add group to User's groups array if not already present
+    if (!user.group?.includes(group._id.toString())) {
+      user.group?.push(group._id.toString());
+    }
+
+    // console.log(user.group, "memberrrrrrrrrrrrrrrr");
+
     await user.save();
+    await group.save();
 
-    // const addUser = await groupSchema.findOneAndUpdate({
-    //   groupName,
-    //   $push: { members: user._id },
-    //   new: true,
-    // });
-
-    // if (user.group?.groupName === group.groupName) return next();
-
-    // group.save();
-
-    res.send({
+    res.status(200).send({
       success: true,
-      message: `${user.userName} added to the ${group.groupName} successfully.`,
+      message: `${user.userName} added into ${group.groupName} successfully.`,
     });
   } catch (error) {
+    console.error("Error while adding group:", error.message);
     res.status(500).send({
       success: false,
-      message: "Error while adding user to group.",
+      message: "Error while adding group.",
       error: error.message,
     });
   }
@@ -404,13 +488,11 @@ const removeUsers = async (req, res) => {
       });
     }
 
-    group.members.pop(user);
+    group.members?.pop(user);
     user.group?.groupName === group?.groupName;
 
     await group.save();
     await user.save();
-
-    // const removeUser = await groupSchema.findOneAndDelete({ user: user._id });
 
     // group.save();
 
@@ -435,3 +517,8 @@ export {
   grantPermission,
   revokePermission,
 };
+
+// ! sample to get user.group in console
+// const user = userSchema.findOne({ groupName: "Yash" });
+// console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuu");
+// console.log(user.group, "llllllllllllllllllllllll");

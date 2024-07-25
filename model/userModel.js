@@ -16,10 +16,13 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
-  group: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Group",
-  },
+  group: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      default: [],
+    },
+  ],
   permissions: [{ type: String }],
 });
 
@@ -28,7 +31,6 @@ userSchema.pre("save", async function (next) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
-  console.log("User Role Before Saving:", this.role);
   next();
 });
 
