@@ -11,6 +11,10 @@ const groupSchema = new mongoose.Schema({
     type: String,
     required: [true, "Group password is required"],
   },
+  role: {
+    type: String,
+    default: "user",
+  },
   members: [
     {
       type: mongoose.Schema.Types.ObjectId,

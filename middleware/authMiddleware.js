@@ -49,36 +49,37 @@ const authMiddleware = async (req, res, next) => {
   try {
     // Decode the token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    console.log("Decoded Token:", decoded);
+    // console.log("Decoded Id (initial):", decoded._id);
+
+    const id = decoded._id;
 
     // Retrieve the user using the decoded ID
-    const user = await userSchema.findById(decoded._id).populate("group");
+    const user = await userSchema
+      .findById(id)
+      .populate({ path: "group", strictPopulate: false });
+    // console.log("Decoded Id (after):", decoded._id);
+    // console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
 
     if (!user) {
       return res.status(404).send({ message: "User is not found." });
     }
 
-    // Debugging: Print user and role
-    console.log("Authenticated User:", user);
-    console.log("Role in Middleware:", user.role);
-
     req.token = token;
     req.user = user;
 
+    //* Check if the user is an admin
     if (user.role === "admin") {
-      console.log("Admin access granted");
       return next(); // Admin has access to everything
     } else {
-      console.log("Non-admin access denied");
-      return res
-        .status(403)
-        .send({ message: "Only admin can access this route." });
+      return res.status(403).send({
+        message: "Only admin can access this route.",
+      });
     }
   } catch (error) {
     console.error("Authentication Error:", error.message);
     res.status(401).send({
       success: false,
-      message: "Please authenticate.",
+      message: "Error while authentication.",
       error: error.message,
     });
   }
@@ -107,3 +108,19 @@ const checkPermission = (permission) => {
 };
 
 export { authMiddleware, checkPermission };
+
+// With the below code, I can get only users, not groups -
+// const user = await userSchema
+//       .findById(id)
+//       .populate({ path: "Group", strictPopulate: false });
+//     console.log("Decoded Id (after):", decoded._id);
+//     console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
+
+// And with the below code, I can get only groups, not users -
+// const user = await userSchema
+//       .find({id})
+//       .populate({ path: "Group", strictPopulate: false });
+//     console.log("Decoded Id (after):", decoded._id);
+//     console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
+
+// Kindly resolve the above error so that both the user and ground would be fetched using a single query.

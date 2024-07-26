@@ -19,7 +19,7 @@ router.post(
 router.post(
   "/revoke",
   authMiddleware,
-  checkPermission("grant"),
+  checkPermission("revoke"),
   revokePermission
 );
 

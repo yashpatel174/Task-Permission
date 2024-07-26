@@ -3,6 +3,12 @@ import groupSchema from "../model/groupModel.js";
 import JWT from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
+// * isAdmin function
+
+const isAdmin = (user) => {
+  return user && user.role === "admin";
+};
+
 //* ================================================== Grant Permission ============================================
 
 const grantPermission = async (req, res) => {
@@ -17,10 +23,11 @@ const grantPermission = async (req, res) => {
           .send({ message: "Only admin can access the permissions." });
 
       const group = await groupSchema.findById(targetId);
+      console.log(group, "gggggggggggppppppppppppppp");
       if (!group) return res.status(403).send({ message: "Group not found" });
 
       // grant permission to group
-      if (!group.permissions.includes(permission)) {
+      if (!group.permissions?.includes(permission)) {
         group.permissions.push(permission);
       }
 
@@ -28,14 +35,16 @@ const grantPermission = async (req, res) => {
       res.status(200).send({ message: "Permission granted to group.", group });
     } else if (targetType === "User") {
       // check if the users were granted the permission
-      const user = await userSchema.findById(targetId).populate("Group");
+      const user = await userSchema
+        .findById(targetId)
+        .populate({ path: "Group", strictPopulate: false });
       if (!user || !user.group)
         return res
           .status(403)
           .send({ message: "User is not a part of any group." });
 
       // Check if user has permission to grant
-      if (!user.group.permissions.includes(permission))
+      if (!user.group.permissions?.includes(permission))
         return res.send({
           message: "Group does not have access to the permissions.",
         });
@@ -47,7 +56,7 @@ const grantPermission = async (req, res) => {
       res.status(200).send({ message: "Permission granted to user.", user });
 
       // Grant user to permission
-      if (!userToGrant.permissions.includes(permission)) {
+      if (!userToGrant.permissions?.includes(permission)) {
         return userToGrant.permissions.push(permission);
       }
 
@@ -75,7 +84,7 @@ const revokePermission = async (req, res) => {
 
   try {
     if (targetType === "Group") {
-      // Check if admion granted permission to this group or not.
+      //* Check if admion granted permission to this group or not.
       if (!isAdmin(req.user))
         return res.status(403).send({
           message: "Only admin can revoke permissions from the group.",
@@ -89,35 +98,49 @@ const revokePermission = async (req, res) => {
             "Group does not exist, so you may create a new group by this name.",
         });
 
-      // revoke permission from group
+      // //* revoke permission from group
       group.permissions = group.permissions.filter(
-        (perm) => perm !== permission
+        (perm) => perm !== permission,
+        group.permissions.rem(permission)
       );
 
-      // Remove permissions from users in this group
-      const removeUserPermissions = await userSchema.findById(targetId);
+      // //* Remove permissions from users in this group
+      // const removeUserPermissions = await userSchema.findById(targetId);
 
-      removeUserPermissions.forEach(async (user) => {
-        user.permissions = user.permissions.filter(
-          (perm) => perm !== permission
-        );
-        await user.save();
-      });
+      // removeUserPermissions?.forEach(async (user) => {
+      //   user.permissions = user.permissions.filter(
+      //     // (perm) => perm !== permission
+      //     user.permissions.pop(permission)
+      //   );
+      //   await user.save();
+      // });
+
+      const usersInGroup = await userSchema.find({ group: targetId });
+
+      await Promise.all(
+        usersInGroup?.map(async (user) => {
+          user.permissions = user.permissions.filter(
+            (perm) => perm !== permission,
+            user.permissions.pop(permission)
+          );
+          await user.save();
+        })
+      );
 
       await group.save();
       res.status(200).send({
-        message: "Permission revoked from groupd and sub-users.",
+        message: "Permission revoked from group and sub-users.",
         group,
       });
     } else if (targetType === "User") {
-      // Check if the group have permissions to revoke and grant permissions to their users
+      //* Check if the group have permissions to revoke and grant permissions to their users
       const user = await userSchema.findById(req.user._id).populate("Group");
       if (!user || !user.group)
         return res
           .status(403)
           .send({ message: "User is not a part of any group." });
 
-      // Check if the user's group has the permissions granted by admin or not
+      //* Check if the user's group has the permissions granted by admin or not
       if (!user.group.permissions.includes(permission))
         return res.send({
           message: "The group to this user does not have any permissions.",
@@ -129,9 +152,10 @@ const revokePermission = async (req, res) => {
           .status(403)
           .send({ message: "User not found to revoke the permissions." });
 
-      // revoke permissions from the user
+      //* revoke permissions from the user
       userToRevoke.permissions = userToRevoke.permissions.filter(
-        (perm) => perm !== permission
+        (perm) => perm !== permission,
+        userToRevoke.permissions.pop(permission)
       );
 
       await userToRevoke.save();
@@ -212,7 +236,7 @@ const revokePermission = async (req, res) => {
 //* ====================================================== Register Group =================================================
 
 const createGroup = async (req, res) => {
-  const { groupName, password } = req.body;
+  const { groupName, password, role } = req.body;
 
   if (!groupName || !password)
     return res.send({ message: "Groupname or Password is required." });
@@ -230,7 +254,7 @@ const createGroup = async (req, res) => {
         message: `Group already exists as the same name: ${existingGroup.groupName}.`,
       });
 
-    const group = await groupSchema({ groupName, password });
+    const group = new groupSchema({ groupName, password, role });
     await group.save();
 
     if (!group)
@@ -287,20 +311,22 @@ const loginGroup = async (req, res) => {
     if (!validPassword) {
       return res.status(400).send({
         success: false,
-        message: "Invalid userName or password.",
+        message: "Invalid groupname or password.",
       });
     }
 
-    const secretKey = process.env.SECRET_KEY;
-
     // Create token
-    const token = JWT.sign({ name: group.groupName }, secretKey, {
-      expiresIn: process.env.JWT_EXPIRATION,
-    });
+    const token = JWT.sign(
+      { _id: group._id, name: group.groupName, role: group.role },
+      process.env.SECRET_KEY,
+      {
+        expiresIn: process.env.JWT_EXPIRATION,
+      }
+    );
 
     res.status(200).send({
       success: true,
-      message: "Group logged in successfully",
+      message: `${group.groupName} logged in successfully`,
       token: token,
     });
   } catch (error) {
@@ -340,63 +366,6 @@ const deleteGroup = async (req, res) => {
 
 //* ====================================================== Add users =================================================
 
-// const addUsers = async (req, res, next) => {
-//   const { groupName, userName } = req.body;
-
-//   if (!groupName || !userName)
-//     return res
-//       .status(403)
-//       .send({ message: "The given fields must be filled." });
-
-//   try {
-//     const group = await groupSchema.findOne({ groupName });
-//     const user = await userSchema.findOne({ userName });
-
-//     if (!group || !user) {
-//       return res.status(404).send({
-//         success: false,
-//         message: "Module not exist.",
-//       });
-//     }
-
-//     if (!user) {
-//       group.members = group.members.filter((member) => member._id !== user._id);
-//       await group.save();
-//       return res
-//         .status(404)
-//         .send({ message: "User not exist, hence removed from group." });
-//     }
-
-//     const userId = user._id.toString();
-//     const groupId = group._id.toString();
-
-//     if (!group.members.includes(userId)) {
-//       group.members?.push(userId);
-//       await group.save();
-//     }
-//     console.log(group, "ggggggggggggggg");
-//     console.log(group.members, "mmmmmmmmmmmmmmm");
-
-//     if (!user.group.includes(groupId)) {
-//       user.group?.push(groupId);
-//       await user.save();
-//     }
-//     console.log(user, "uuuuuuuuuuuuu");
-//     console.log(user.group, "uuuuuuuuuuuuugggggggggggggg");
-
-//     // res.send({
-//     //   success: true,
-//     //   message: `${user.userName} added to the ${group.groupName} successfully.`,
-//     // });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error while adding user to group.",
-//       error: error.message,
-//     });
-//   }
-// };
-
 const addUsers = async (req, res) => {
   const { groupName, userName } = req.body;
 
@@ -419,30 +388,9 @@ const addUsers = async (req, res) => {
       return res.status(404).send({ message: "Group not found." });
     }
 
-    //! 1st try
-    // // Check if user is an admin
-    // if (user.role !== "admin") {
-    //   return res.status(403).send({ message: "This user is not an admin." });
-    // } else {
-    //   // Add group to Admin's groups array if not already present
-    //   if (!user.group.includes(group._id.toString())) {
-    //     user.group?.push(group._id.toString());
-    //   } else {
-    //     return res.send({
-    //       message: "Group already added to admin group list.",
-    //     });
-    //   }
-    // }
-
-    //! 2nd try
-    // Initialize user's groups array if undefined
-    // if (!user.group) {
-    //   user.group = [];
-    // }
     console.log(user, "userrrrrrrrrrrr");
     console.log(user?.group), "reerererre";
 
-    //* Final Try
     // Add user to group's members array if not already present
     if (!group.members?.includes(user._id.toString())) {
       group.members?.push(user._id.toString());
@@ -452,8 +400,6 @@ const addUsers = async (req, res) => {
     if (!user.group?.includes(group._id.toString())) {
       user.group?.push(group._id.toString());
     }
-
-    // console.log(user.group, "memberrrrrrrrrrrrrrrr");
 
     await user.save();
     await group.save();
@@ -494,8 +440,6 @@ const removeUsers = async (req, res) => {
     await group.save();
     await user.save();
 
-    // group.save();
-
     res.send({
       message: `${user.userName} removed from the ${group.groupName} successfully.`,
     });
@@ -517,8 +461,3 @@ export {
   grantPermission,
   revokePermission,
 };
-
-// ! sample to get user.group in console
-// const user = userSchema.findOne({ groupName: "Yash" });
-// console.log(user, "uuuuuuuuuuuuuuuuuuuuuuuuuuuu");
-// console.log(user.group, "llllllllllllllllllllllll");

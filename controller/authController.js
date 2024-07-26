@@ -220,6 +220,13 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { userName, password } = req.body;
 
+  if (!userName || !password) {
+    res.status(400).send({
+      success: false,
+      message: "Username and password are required.",
+    });
+  }
+
   try {
     const user = await userSchema.findOne({ userName });
 
@@ -228,15 +235,15 @@ const login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log(user.password, "Login");
+
     if (!isMatch) {
-      return res.status(400).send({ message: "Invalid credentials" });
+      return res.status(400).send({ message: "Invalid username or password." });
     }
 
     const token = JWT.sign(
       { _id: user._id, role: user.role },
       process.env.SECRET_KEY,
-      { expiresIn: "1h" }
+      { expiresIn: process.env.JWT_EXPIRATION }
     );
 
     res.status(200).send({
@@ -248,74 +255,5 @@ const login = async (req, res) => {
     res.status(500).send({ message: "Error logging in", error: error.message });
   }
 };
-
-// ! 1st try
-// const addGroup = async (req, res) => {
-//   const { userName, groupName } = req.body;
-
-//   if (!userName || !groupName) {
-//     res.send({ message: "Fill the required fields." });
-//   }
-
-//   try {
-//     const user = await userSchema.findOne({ userName });
-//     const group = await groupSchema.findOne({ groupName });
-//     console.log(user, group);
-//     if (!user?.role === "admin")
-//       return res.send({ message: "This user is not an admin" });
-
-//     if (!group) return res.send({ message: "Group not exist." });
-
-//     if (!user.group?.includes(group._id.toString())) {
-//       user.group?.push(group._id.toString());
-//       await user.save();
-//       res.send({ message: "Group added successfully." });
-//     }
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error while adding group.",
-//       error: error.message,
-//     });
-//   }
-// };
-
-// ! 2nd try
-// const addGroup = async (req, res) => {
-//   const { userName, groupName } = req.body;
-
-//   if (!userName) {
-//     res.send({ message: "Enter username." });
-//   }
-
-//   try {
-//     const user = await userSchema.findOne({ userName });
-//     const group = await groupSchema.findOne({ groupName });
-//     console.log(user.userName);
-//     console.log(group.groupName);
-//     if (user?.role !== "admin")
-//       return res.send({ message: "This user is not an admin" });
-//     // console.log(user?.role, "role??????????????????????????????");
-
-//     if (!user.group?.includes(group._id.toString())) {
-//       const added = user.group?.push(group._id.toString());
-//       console.log(user?.group);
-//       res.send({ message: "Group added successfully." });
-//     }
-
-//     if (!group) {
-//       user.group?.pop(group._id.toString());
-//     }
-
-//     await user.save();
-//   } catch (error) {
-//     console.log(error.message),
-//       res.status(500).send({
-//         success: false,
-//         message: "Error while adding group.",
-//         error: error.message,
-//       });
-//   }
-// };
 
 export { register, login };
