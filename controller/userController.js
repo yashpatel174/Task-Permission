@@ -100,8 +100,8 @@ const revokePermission = async (req, res) => {
 
       // //* revoke permission from group
       group.permissions = group.permissions.filter(
-        (perm) => perm !== permission,
-        group.permissions.rem(permission)
+        (perm) => perm !== permission
+        // group.permissions.rem(permission)
       );
 
       // //* Remove permissions from users in this group
@@ -134,14 +134,16 @@ const revokePermission = async (req, res) => {
       });
     } else if (targetType === "User") {
       //* Check if the group have permissions to revoke and grant permissions to their users
-      const user = await userSchema.findById(req.user._id).populate("Group");
+      const user = await userSchema
+        .findById(req.user._id)
+        .populate({ path: "Group", strictPopulate: false });
       if (!user || !user.group)
         return res
           .status(403)
           .send({ message: "User is not a part of any group." });
 
       //* Check if the user's group has the permissions granted by admin or not
-      if (!user.group.permissions.includes(permission))
+      if (!user.group.permissions?.includes(permission))
         return res.send({
           message: "The group to this user does not have any permissions.",
         });
@@ -294,24 +296,16 @@ const loginGroup = async (req, res) => {
       return res.status(400).send({
         success: false,
         message: "Group not registered.",
-        error: (error) => error.message,
-      });
-    }
-
-    if (!password || !group.password) {
-      return res.status(400).send({
-        success: false,
-        message: "Password is missing.",
       });
     }
 
     // Compare password
-    const validPassword = await bcrypt.compare(password, group.password);
+    const isMatch = await bcrypt.compare(password, group.password);
 
-    if (!validPassword) {
+    if (!isMatch) {
       return res.status(400).send({
         success: false,
-        message: "Invalid groupname or password.",
+        message: "Invalid username or password.",
       });
     }
 

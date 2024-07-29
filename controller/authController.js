@@ -177,8 +177,7 @@ const register = async (req, res) => {
     console.log(user, "user initial");
     console.log(user.group, "group initial");
 
-    // * Final Try
-    // If group names are provided, find the groups and add to user's groups array
+    //* If group names are provided, find the groups and add to user's groups array
     if (groupName && Array.isArray(groupName) && groupName.length > 0) {
       const groups = await groupSchema.find({ name: { $in: groupName } });
       user.group = groups.map((group) => group._id.toString());

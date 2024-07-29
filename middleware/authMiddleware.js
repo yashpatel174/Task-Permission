@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 import userSchema from "../model/userModel.js";
+import groupSchema from "../model/groupModel.js";
+import mongoose from "mongoose";
 
 // const authMiddleware = async (req, res, next) => {
 //   const token = req.header("Authorization");
@@ -47,32 +49,61 @@ const authMiddleware = async (req, res, next) => {
   }
 
   try {
-    // Decode the token
+    //* Decode the token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     // console.log("Decoded Id (initial):", decoded._id);
 
     const id = decoded._id;
+    console.log(id, "-0---------");
+    // //* Retrieve the user usign aggregate
+    // const userWithGroup = await userSchema.aggregate([
+    //   { $match: { _id: mongoose.type?.ObjectId(id) } },
+    //   {
+    //     $lookup: {
+    //       from: "group",
+    //       localField: "group",
+    //       foreignField: "_id",
+    //       as: "group",
+    //     },
+    //   },
+    // ]);
 
-    // Retrieve the user using the decoded ID
-    const user = await userSchema
-      .findById(id)
-      .populate({ path: "group", strictPopulate: false });
-    // console.log("Decoded Id (after):", decoded._id);
-    // console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
+    // const user = userWithGroup[0];
+
+    //* Retrieve the user using the decoded ID
+    const user = await groupSchema.findById(id).populate("members");
+
+    console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
+
+    // if (!user) {
+    //   return {
+    //     catch(err) {
+    //       res.status(404).send({
+    //         message: "User is not found.",
+    //         err: err.message,
+    //       });
+    //     },
+    //   };
+    // } else {
+    //   return next();
+    // }
 
     if (!user) {
-      return res.status(404).send({ message: "User is not found." });
+      return res.status(403).send({ message: "User is not found." });
     }
 
     req.token = token;
     req.user = user;
 
+    // console.log(req?.user.role, "Userrrrrrrrrrrrr Role");
+    console.log(req.user.group, "User Groups");
+
     //* Check if the user is an admin
-    if (user.role === "admin") {
+    if (req?.user.role.role === "admin") {
       return next(); // Admin has access to everything
     } else {
       return res.status(403).send({
-        message: "Only admin can access this route.",
+        message: "Authenticated to admin only.",
       });
     }
   } catch (error) {
@@ -108,19 +139,3 @@ const checkPermission = (permission) => {
 };
 
 export { authMiddleware, checkPermission };
-
-// With the below code, I can get only users, not groups -
-// const user = await userSchema
-//       .findById(id)
-//       .populate({ path: "Group", strictPopulate: false });
-//     console.log("Decoded Id (after):", decoded._id);
-//     console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
-
-// And with the below code, I can get only groups, not users -
-// const user = await userSchema
-//       .find({id})
-//       .populate({ path: "Group", strictPopulate: false });
-//     console.log("Decoded Id (after):", decoded._id);
-//     console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
-
-// Kindly resolve the above error so that both the user and ground would be fetched using a single query.
