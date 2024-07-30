@@ -12,24 +12,29 @@ import {
 } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/create", authMiddleware, checkPermission("grant"), createModule);
-router.get("/", authMiddleware, checkPermission("grant"), getAllModules);
+router.post(
+  "/create",
+  authMiddleware,
+  checkPermission(["Create"]),
+  createModule
+);
+router.get("/", authMiddleware, checkPermission(["GetAll"]), getAllModules);
 router.get(
   "/:moduleName",
   authMiddleware,
-  checkPermission("grant"),
+  checkPermission(["Get"]),
   getSingleModule
 );
 router.patch(
   "/update/:moduleName",
   authMiddleware,
-  checkPermission("grant"),
+  checkPermission(["Update"]),
   updateModule
 );
 router.delete(
   "/delete/:moduleName",
   authMiddleware,
-  checkPermission("grant"),
+  checkPermission(["Delete"]),
   deleteModule
 );
 

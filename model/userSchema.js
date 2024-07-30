@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["user", "admin"],
+    enum: ["admin", "user"],
     default: "user",
   },
   group: [
@@ -23,7 +23,14 @@ const userSchema = new mongoose.Schema({
       default: [],
     },
   ],
-  permissions: [{ type: String }],
+  permission: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "groupPermission",
+      default: [],
+    },
+  ],
+  // permissions: [{ type: String }],
 });
 
 userSchema.pre("save", async function (next) {

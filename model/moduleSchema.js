@@ -9,11 +9,6 @@ const moduleSchema = new mongoose.Schema({
     type: Number,
     unique: true,
   },
-  // createdBy: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   ref: "User",
-  //   required: true,
-  // },
 });
 
 export default mongoose.model("Module", moduleSchema);

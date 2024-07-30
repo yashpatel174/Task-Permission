@@ -2,10 +2,9 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
-import authRoute from "./route/authRoute.js";
+import userRoute from "./route/uesrRoute.js";
 import groupRoute from "./route/groupRoute.js";
 import moduleRoute from "./route/moduleRoute.js";
-import permissionRoute from "./route/permissionRoute.js";
 import dataRoute from "./route/dataRoute.js";
 const app = express();
 
@@ -22,10 +21,9 @@ mongoose
   .then(console.log("Database connected successfully."));
 
 // Routes
-app.use("/users", authRoute);
+app.use("/users", userRoute);
 app.use("/groups", groupRoute);
 app.use("/modules", moduleRoute);
-app.use("/permissions", permissionRoute);
 app.use("/database", dataRoute);
 
 // Starting the server

@@ -1,4 +1,4 @@
-import moduleSchema from "../model/moduleModel.js";
+import moduleSchema from "../model/moduleSchema.js";
 
 // Create a new module
 

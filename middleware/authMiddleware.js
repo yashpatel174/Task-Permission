@@ -1,45 +1,8 @@
 import jwt from "jsonwebtoken";
-import userSchema from "../model/userModel.js";
-import groupSchema from "../model/groupModel.js";
-import mongoose from "mongoose";
-
-// const authMiddleware = async (req, res, next) => {
-//   const token = req.header("Authorization");
-
-//   if (!token) {
-//     return res.status(401).send({ message: "Token is not provided." });
-//   }
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-//     console.log("Decoded token:", decoded);
-
-//     const user = await userSchema.findOne(decoded._id).populate("group");
-
-//     if (!user) {
-//       throw new Error("User not found.");
-//     }
-
-//     console.log("Authenticated user:", user.userName);
-//     console.log("Role in Middleware:", user.role);
-
-//     req.token = token;
-//     req.user = user;
-
-//     if (user.role === "admin") {
-//       return next();
-//     } else {
-//       return res.status(403).send({ message: "Only admin can access." });
-//     }
-//   } catch (error) {
-//     console.log("Authentication error:", error.message);
-//     res.status(401).send({
-//       success: false,
-//       message: "Please authenticate.",
-//       error: error.message,
-//     });
-//   }
-// };
+import userSchema from "../model/userSchema.js";
+import permissionSchema from "../model/permissionSchema.js";
+import userPermission from "../model/userPermission.js";
+import groupPermission from "../model/groupPermission.js";
 
 const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization");
@@ -47,46 +10,19 @@ const authMiddleware = async (req, res, next) => {
   if (!token) {
     return res.status(401).send({ message: "Token is not provided." });
   }
+  console.log(token);
 
   try {
     //* Decode the token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    // console.log("Decoded Id (initial):", decoded._id);
 
     const id = decoded._id;
     console.log(id, "-0---------");
-    // //* Retrieve the user usign aggregate
-    // const userWithGroup = await userSchema.aggregate([
-    //   { $match: { _id: mongoose.type?.ObjectId(id) } },
-    //   {
-    //     $lookup: {
-    //       from: "group",
-    //       localField: "group",
-    //       foreignField: "_id",
-    //       as: "group",
-    //     },
-    //   },
-    // ]);
-
-    // const user = userWithGroup[0];
 
     //* Retrieve the user using the decoded ID
-    const user = await groupSchema.findById(id).populate("members");
+    const user = await userSchema.find({ id });
 
     console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
-
-    // if (!user) {
-    //   return {
-    //     catch(err) {
-    //       res.status(404).send({
-    //         message: "User is not found.",
-    //         err: err.message,
-    //       });
-    //     },
-    //   };
-    // } else {
-    //   return next();
-    // }
 
     if (!user) {
       return res.status(403).send({ message: "User is not found." });
@@ -95,12 +31,11 @@ const authMiddleware = async (req, res, next) => {
     req.token = token;
     req.user = user;
 
-    // console.log(req?.user.role, "Userrrrrrrrrrrrr Role");
     console.log(req.user.group, "User Groups");
 
     //* Check if the user is an admin
-    if (req?.user.role.role === "admin") {
-      return next(); // Admin has access to everything
+    if (req.user?.role === "admin") {
+      return next();
     } else {
       return res.status(403).send({
         message: "Authenticated to admin only.",
@@ -116,26 +51,54 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-const checkPermission = (permission) => {
-  return async (req, res, next) => {
-    const user = req.user;
+const checkPermission =
+  (requiredPermissions, moduleId) => async (req, res, next) => {
+    try {
+      const userPermissions = await userPermission
+        .findOne({ userId: req.user._id })
+        .populate("permission");
 
-    if (!user) return res.send({ message: "user not authorized." });
+      const groupPermissions = await groupPermission
+        .findOne({ groupId: req.user.group._id })
+        .populate("permission");
 
-    const userPermissions = user?.permissions;
-    const groupPermissions = user?.group ? user.group.permissions : [];
+      let permissions = [];
 
-    if (user.role === "admin") return next();
+      if (userPermissions && userPermissions.permission) {
+        const userPermission = await permissionSchema.findById(
+          userPermissions.permission
+        );
+        permissions = permissions.concat(userPermission.permissions);
+      }
 
-    if (
-      userPermissions?.includes(permission) ||
-      groupPermissions?.includes(permission)
-    ) {
-      next();
-    } else {
-      res.status(403).send({ message: "Permission denied" });
-    }
+      if (groupPermissions && groupPermissions.permission) {
+        const groupPermission = await permissionSchema.findById(
+          groupPermissions.permission
+        );
+        permissions = permissions.concat(groupPermission.permissions);
+      }
+
+      if (!permissions.length) {
+        return res.status(403).send({ error: "Access denied." });
+      }
+
+      // const permission = await permissionSchema
+      //   .findById(userPermission.permission)
+      //   .populate(moduleId);
+
+      // if (permission.moduleId.toString() !== moduleId.toString()) {
+      //   return res.send({ message: "Access denied as module is not matched." });
+      // }
+
+      const hasPermission = requiredPermissions.every((permission) =>
+        permissions?.includes(permission)
+      );
+
+      if (!hasPermission)
+        return res.send({
+          message: "Access denied as this user has already the permission.",
+        });
+    } catch (error) {}
   };
-};
 
 export { authMiddleware, checkPermission };
