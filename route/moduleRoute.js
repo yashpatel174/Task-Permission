@@ -15,26 +15,31 @@ const router = express.Router();
 router.post(
   "/create",
   authMiddleware,
-  checkPermission(["Create"]),
+  checkPermission(["Create"], (req) => req.body.moduleId),
   createModule
 );
-router.get("/", authMiddleware, checkPermission(["GetAll"]), getAllModules);
+router.get(
+  "/",
+  authMiddleware,
+  checkPermission(["GetAll"], (req) => req.body.moduleId),
+  getAllModules
+);
 router.get(
   "/:moduleName",
   authMiddleware,
-  checkPermission(["Get"]),
+  checkPermission(["Get"], (req) => req.body.moduleId),
   getSingleModule
 );
 router.patch(
   "/update/:moduleName",
   authMiddleware,
-  checkPermission(["Update"]),
+  checkPermission(["Update"], (req) => req.body.moduleId),
   updateModule
 );
 router.delete(
   "/delete/:moduleName",
   authMiddleware,
-  checkPermission(["Delete"]),
+  checkPermission(["Delete"], (req) => req.body.moduleId),
   deleteModule
 );
 

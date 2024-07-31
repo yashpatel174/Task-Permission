@@ -54,6 +54,12 @@ const authMiddleware = async (req, res, next) => {
 const checkPermission =
   (requiredPermissions, moduleId) => async (req, res, next) => {
     try {
+      if (req.user.role === "admin") {
+        return next();
+      } else {
+        return res.send({ message: "Only admin can access." });
+      }
+
       const userPermissions = await userPermission
         .findOne({ userId: req.user._id })
         .populate("permission");

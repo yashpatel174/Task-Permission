@@ -115,111 +115,42 @@ const removeUsers = async (req, res) => {
   }
 };
 
-// const permissionToGroup = async (req, res) => {
-//   const { groupId, moduleId, permissions } = req.body;
+const gPermission = async (req, res) => {
+  const { groupId } = req.params;
+  const { moduleId, permissions } = req.body;
 
-//   if (!groupId || !moduleId || !permissions)
-//     return res.send({ message: "required fields are necessary." });
-
-//   try {
-//     const permission = new permissionSchema({ permissions, moduleId });
-//     await permission.save();
-
-//     const groupPermission = new groupPermission({
-//       groupId,
-//       permission: permission._id,
-//     });
-//     await groupPermission.save();
-
-//     const group = groupSchema.findById({ groupId });
-//     if (!group) return res.send({ message: "Group does not exist." });
-
-//     const match = (group.permission = groupPermission._id);
-//     console.log(match, "Verifying group while providing permissions.");
-
-//     await group.save();
-
-//     res.status(200).send({
-//       success: true,
-//       message: "Permission added to group successfully.",
-//       groupPermission,
-//     });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error while Providing permissions to the group.",
-//       error: error.message,
-//     });
-//   }
-// };
-
-// const permissionToUser = async (req, res) => {
-//   const { userId, groupPermissionId } = req.body;
-
-//   if (!userId || !groupPermissionId)
-//     return res.send({ message: " Required fields are mendatory." });
-
-//   try {
-//     const userPermissions = new userPermission({
-//       userId,
-//       permission: groupPermissionId,
-//     });
-//     await userPermissions.save();
-
-//     const user = userSchema.findById(userId);
-//     user.permission = groupPermissionId;
-//     await user.save();
-
-//     if (!userPermissions || !user)
-//       return res, send({ message: "Permissions or user not found." });
-
-//     res.status(200).send({
-//       success: true,
-//       message: "Permission provided to user successfully.",
-//       userPermissions,
-//     });
-//   } catch (error) {
-//     res.status(500).send({
-//       success: false,
-//       message: "Error while providing permissions to user.",
-//       error: error.message,
-//     });
-//   }
-// };
-
-const permissionToGroup = async (req, res) => {
-  const { groupId, permissions } = req.body;
-
-  if (!groupId || !permissions)
+  if (!groupId || !moduleId || !permissions)
     return res.send({ message: "required fields are necessary." });
 
   try {
-    const permission = permissionSchema.findOne({ permissions });
-    console.log();
+    // * created permissions for the groups
+    const prmsn = new permissionSchema({ moduleId, permissions });
+    await prmsn.save();
 
-    const groupPermissions = new groupPermission({
+    // * store the created permissions to the group permission.
+    const gPermission = new groupPermission({
       groupId,
-      permission: permissions,
+      permission: prmsn._id,
     });
+    await gPermission.save();
 
-    if (groupPermissions) {
-      return groupPermission.groupId?.push(permission);
-    }
-
-    await groupPermissions.save();
-
-    const group = groupSchema.findById({ groupId });
+    const group = await groupSchema.findById(groupId);
     if (!group) return res.send({ message: "Group does not exist." });
 
-    const match = (group.permission = groupPermission._id);
-    console.log(match, "Verifying group while providing permissions.");
+    if (group.permission?.includes(gPermission)) {
+      return res.send({
+        message:
+          "This group has already the same permission for the same module.",
+      });
+    }
 
+    group.permission?.push(gPermission);
     await group.save();
 
     res.status(200).send({
       success: true,
       message: "Permission added to group successfully.",
-      groupPermission,
+      group,
     });
   } catch (error) {
     res.status(500).send({
@@ -230,30 +161,121 @@ const permissionToGroup = async (req, res) => {
   }
 };
 
-const permissionToUser = async (req, res) => {
+const removeGroupPermission = async (req, res) => {
+  const { groupId } = req.params;
+  const { moduleId, permissions } = req.body;
+
+  if (!groupId || !moduleId || !permissions) {
+    return res.status(400).send({ message: "Required fields are necessary." });
+  }
+
+  try {
+    // Find the existing permission
+    const existPermission = await permissionSchema.findOne({
+      moduleId,
+      permissions,
+    });
+
+    if (!existPermission) {
+      return res
+        .status(404)
+        .send({ message: "Permission is not provided to this group." });
+    }
+
+    // Remove the permission
+    await permissionSchema.findOneAndDelete({ _id: existPermission._id });
+
+    // Find the group permission
+    const gPermission = await groupPermission.findOne({
+      groupId,
+      permission: existPermission._id,
+    });
+
+    if (!gPermission) {
+      return res.status(404).send({
+        message: "Group permission does not exist for this group.",
+      });
+    }
+
+    // Remove the group permission
+    await groupPermission.findOneAndDelete({ _id: gPermission._id });
+
+    // Find the group and remove the group permission from its permissions array
+    const group = await groupSchema.findById(groupId);
+    if (!group) {
+      return res.status(404).send({ message: "Group does not exist." });
+    }
+
+    group.permission = group.permission.filter(
+      (perm) => perm.toString() !== gPermission._id.toString()
+    );
+
+    await group.save();
+
+    res.status(200).send({
+      success: true,
+      message: "Permission removed from group successfully.",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error while removing permissions from the group.",
+      error: error.message,
+    });
+  }
+};
+
+const uPermission = async (req, res) => {
   const { userId, groupPermissionId } = req.body;
 
   if (!userId || !groupPermissionId)
     return res.send({ message: " Required fields are mendatory." });
 
   try {
-    const userPermissions = new userPermission({
-      userId,
-      permission: groupPermissionId,
-    });
-    await userPermissions.save();
+    //* Finding group permission
+    const gPermission = await groupPermission.findById(groupPermissionId);
+    console.log(gPermission, "aaaaaaaaaaaaaaa");
 
-    const user = userSchema.findById(userId);
-    user.permission = groupPermissionId;
+    if (!gPermission) {
+      return res
+        .status(404)
+        .send({ message: "Group permission is not exist." });
+    }
+
+    //* Finding user
+    const user = await userSchema.findById(userId);
+    console.log(user, "bbbbbbbbbbbbbbbbbbbb");
+    if (!user) {
+      return res.status(404).send({ message: "User not found." });
+    }
+
+    //* Compairing group of group permissions with group of user
+    const userGroups = user.group.map((group) => group.toString());
+    const gId = gPermission.groupId.toString();
+
+    console.log(userGroups, "cccccccccccccccccccc");
+    console.log(gId, "dddddddddddddddddddd");
+
+    if (!userGroups.includes(gId)) {
+      return res
+        .status(400)
+        .send({ message: "This user is not a member of this group." });
+    }
+
+    //* Create user permission
+    const uPermission = new userPermission({ userId, groupPermissionId });
+    await uPermission.save();
+    console.log(uPermission, "eeeeeeeeeeeeeeeeeeeeeeeeee");
+
+    //* providing permissions to the user.
+    if (!user.permission?.includes(groupPermissionId)) {
+      user.permission?.push(groupPermissionId);
+    }
     await user.save();
-
-    if (!userPermissions || !user)
-      return res, send({ message: "Permissions or user not found." });
 
     res.status(200).send({
       success: true,
       message: "Permission provided to user successfully.",
-      userPermissions,
     });
   } catch (error) {
     res.status(500).send({
@@ -264,10 +286,76 @@ const permissionToUser = async (req, res) => {
   }
 };
 
+const removeUserPermission = async (req, res) => {
+  const { userId, groupPermissionId } = req.body;
+
+  if (!userId || !groupPermissionId) {
+    return res.status(400).send({ message: "Required fields are necessary." });
+  }
+
+  try {
+    // Finding group permission
+    const gPermission = await groupPermission.findById(groupPermissionId);
+    if (!gPermission) {
+      return res
+        .status(404)
+        .send({ message: "Group permission does not exist." });
+    }
+
+    // Finding user
+    const user = await userSchema.findById(userId);
+    if (!user) {
+      return res.status(404).send({ message: "User not found." });
+    }
+
+    // Comparing group of group permissions with group of user
+    const userGroups = user.group.map((group) => group.toString());
+    const gId = gPermission.groupId.toString();
+
+    if (!userGroups.includes(gId)) {
+      return res
+        .status(400)
+        .send({ message: "This user is not a member of this group." });
+    }
+
+    // Remove the user permission
+    const uPermission = await userPermission.findOneAndDelete({
+      userId: userId,
+      groupPermissionId: groupPermissionId,
+    });
+
+    if (!uPermission) {
+      return res
+        .status(404)
+        .send({ message: "User permission does not exist." });
+    }
+
+    // Remove the user permission from the user's permissions array
+    user.permission = user.permission.filter(
+      (perm) => perm.toString() !== groupPermissionId.toString()
+    );
+
+    await user.save();
+
+    res.status(200).send({
+      success: true,
+      message: "Permission removed from user successfully.",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error while removing permissions from the user.",
+      error: error.message,
+    });
+  }
+};
+
 export {
   createGroup,
   addUsers,
   removeUsers,
-  permissionToGroup,
-  permissionToUser,
+  gPermission,
+  uPermission,
+  removeGroupPermission,
+  removeUserPermission,
 };

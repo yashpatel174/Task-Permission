@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const permissionSchema = new mongoose.Schema({
   permissions: {
     type: [String],
-    enum: ["Create", "GetAll", "Get", "Update", "Delete"],
+    enum: ["Create", "FindAll", "Find", "Update", "Delete"],
     default: [],
   },
   moduleId: [

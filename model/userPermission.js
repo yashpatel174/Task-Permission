@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
 
 const userPermission = new mongoose.Schema({
   userId: {
@@ -7,7 +6,7 @@ const userPermission = new mongoose.Schema({
     ref: "User",
     default: [],
   },
-  permission: [
+  groupPermissionId: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "groupPermission",
