@@ -122,10 +122,22 @@ const gPermission = async (req, res) => {
   if (!groupId || !moduleId || !permissions)
     return res.send({ message: "required fields are necessary." });
 
+  if (!groupId || !permissions || !moduleId) {
+    return res.send({ message: "Required fields are necessary." });
+  }
+
   try {
     // * created permissions for the groups
-    const prmsn = new permissionSchema({ moduleId, permissions });
+    let prmsn;
+    if (permissions.includes("Create") || permissions.includes("FindAll")) {
+      prmsn = new permissionSchema({ permissions });
+    } else {
+      prmsn = new permissionSchema({ moduleId, permissions });
+    }
     await prmsn.save();
+
+    // prmsn = new permissionSchema({ moduleId, permissions });
+    // await prmsn.save();
 
     // * store the created permissions to the group permission.
     const gPermission = new groupPermission({
@@ -149,13 +161,13 @@ const gPermission = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Permission added to group successfully.",
+      message: `Permission provided to ${group.groupName} successfully.`,
       group,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: "Error while Providing permissions to the group.",
+      message: `Error while Providing permissions to ${group.groupName}.`,
       error: error.message,
     });
   }
@@ -179,7 +191,7 @@ const removeGroupPermission = async (req, res) => {
     if (!existPermission) {
       return res
         .status(404)
-        .send({ message: "Permission is not provided to this group." });
+        .send({ message: `Permission is not provided to ${group.groupName}.` });
     }
 
     // Remove the permission
@@ -214,7 +226,7 @@ const removeGroupPermission = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Permission removed from group successfully.",
+      message: `Permission removed from ${group.groupName} successfully.`,
     });
   } catch (error) {
     res.status(500).send({
@@ -234,7 +246,7 @@ const uPermission = async (req, res) => {
   try {
     //* Finding group permission
     const gPermission = await groupPermission.findById(groupPermissionId);
-    console.log(gPermission, "aaaaaaaaaaaaaaa");
+    // console.log(gPermission, "aaaaaaaaaaaaaaa");
 
     if (!gPermission) {
       return res
@@ -244,7 +256,7 @@ const uPermission = async (req, res) => {
 
     //* Finding user
     const user = await userSchema.findById(userId);
-    console.log(user, "bbbbbbbbbbbbbbbbbbbb");
+    // console.log(user, "bbbbbbbbbbbbbbbbbbbb");
     if (!user) {
       return res.status(404).send({ message: "User not found." });
     }
@@ -253,8 +265,8 @@ const uPermission = async (req, res) => {
     const userGroups = user.group.map((group) => group.toString());
     const gId = gPermission.groupId.toString();
 
-    console.log(userGroups, "cccccccccccccccccccc");
-    console.log(gId, "dddddddddddddddddddd");
+    // console.log(userGroups, "cccccccccccccccccccc");
+    // console.log(gId, "dddddddddddddddddddd");
 
     if (!userGroups.includes(gId)) {
       return res
@@ -265,7 +277,7 @@ const uPermission = async (req, res) => {
     //* Create user permission
     const uPermission = new userPermission({ userId, groupPermissionId });
     await uPermission.save();
-    console.log(uPermission, "eeeeeeeeeeeeeeeeeeeeeeeeee");
+    // console.log(uPermission, "eeeeeeeeeeeeeeeeeeeeeeeeee");
 
     //* providing permissions to the user.
     if (!user.permission?.includes(groupPermissionId)) {
@@ -275,7 +287,7 @@ const uPermission = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Permission provided to user successfully.",
+      message: `Permission provided to ${user.userName} successfully.`,
     });
   } catch (error) {
     res.status(500).send({
@@ -339,7 +351,7 @@ const removeUserPermission = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Permission removed from user successfully.",
+      message: `Permission removed from ${user.userName} successfully.`,
     });
   } catch (error) {
     res.status(500).send({
