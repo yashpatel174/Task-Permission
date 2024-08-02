@@ -10,7 +10,6 @@ const authMiddleware = async (req, res, next) => {
   if (!token) {
     return res.status(401).send({ message: "Token is not provided." });
   }
-  // console.log(token);
 
   try {
     //* Decode the token
@@ -19,23 +18,12 @@ const authMiddleware = async (req, res, next) => {
     //* Retrieve the user using the decoded ID
     const user = await userSchema.findById(decoded._id);
 
-    // console.log(user, "uuuuuuuussssssssssssseeeeeeeeeeeeeerrrrrrrrrrrr");
-
     if (!user) {
       return res.status(403).send({ message: "User is not found." });
     }
 
     req.token = token;
     req.user = user;
-
-    console.log("Role:", req.user.role);
-
-    // //* Check if the user is an admin
-    // if (req.user?.role === "user") {
-    //   return res.status(403).send({
-    //     message: "Authenticated to admin only.",
-    //   });
-    // }
 
     next();
   } catch (error) {
@@ -177,142 +165,51 @@ const authMiddleware = async (req, res, next) => {
 //     }
 //   };
 
-// const checkPermission =
-//   (requiredPermissions, moduleId) => async (req, res, next) => {
-//     try {
-//       const group = req.user.group;
-//       console.log(group, "topppppp");
-
-//       // If user is admin, grant access
-//       if (req.user?.role === "admin") {
-//         return next();
-//       }
-
-//       // Fetch user permissions
-//       const userPermissions = await userPermission
-//         .find({
-//           userId: req.user._id,
-//         })
-//         .populate({
-//           path: "groupPermissionId",
-//           populate: {
-//             path: "permission",
-//           },
-//         });
-//       console.log(userPermissions, "uuuuuuuuuppppppppppppppp");
-
-//       // Fetch group permissions
-//       const groupPermissions = await groupPermission
-//         .find({
-//           groupId: { $in: group },
-//         })
-//         .populate({
-//           path: "permission",
-//         });
-//       console.log(groupPermissions, "gggggggggggggpppppppppppppp");
-
-//       // let permissions = [];
-
-//       // // Collect user-specific permissions
-//       // if (userPermissions && userPermissions.groupPermissionId) {
-//       //   userPermission.groupPermissionId.forEach((groupPermission) => {
-//       //     groupPermission.permission.forEach((permission) => {
-//       //       permissions.push(...permission.requiredPermissions);
-//       //     });
-//       //   });
-//       // }
-//       // console.log(userPermissions, "aaaaaaaaaaaaaa");
-//       // console.log(userPermissions.groupPermission, "bbbbbbbbbbbbbbbbb");
-//       // console.log(groupPermissions.permission, "ccccccccccc");
-//       // console.log(permissions, "dddddddddddddddddd");
-
-//       // // Collect group permissions
-//       // groupPermissions.forEach((groupPermission) => {
-//       //   groupPermission.permission.forEach((permission) => {
-//       //     permissions.push(...permission.permissions);
-//       //   });
-//       // });
-
-//       // Collect user-specific permissions
-//       const userPermissionsList =
-//         userPermissions.groupPermissionId?.flatMap((groupPermission) =>
-//           groupPermission.permission.flatMap(
-//             (permission) => permission.permissions
-//           )
-//         ) || [];
-
-//       // Collect group permissions
-//       const groupPermissionsList =
-//         groupPermissions.flatMap((groupPermission) =>
-//           groupPermission.permission.flatMap(
-//             (permission) => permission.permissions
-//           )
-//         ) || [];
-
-//       console.log(userPermissions, "aaaaaaaaaaaaaa");
-//       console.log(userPermissions.groupPermissionId, "bbbbbbbbbbbbbbbbb");
-//       console.log(userPermissionsList, "ccccccccccc");
-//       console.log(groupPermissions, "dddddddddddddddddd");
-//       console.log(groupPermissionsList, "eeeeeeeeeeeee");
-
-//       // Combine all permissions
-//       const permissions = [...userPermissionsList, ...groupPermissionsList];
-
-//       console.log(permissions, "ffffffffffff");
-
-//       // Check if the user has the required permissions
-//       if (permissions.includes(requiredPermissions)) {
-//         return next();
-//       }
-//       // // If no permissions match, deny access
-//       // return res.status(403).json({ message: "Permission denied" });
-//       next();
-//     } catch (error) {
-//       console.error("Error verifying permissions:", error.message);
-//       return res
-//         .status(500)
-//         .json({ message: "Internal server error", error: error.message });
-//     }
-//   };
-
 const checkPermission = (requiredPermission, moduleId) => {
   return async (req, res, next) => {
     try {
       const userId = req.user._id; // Assumes user is set in req.user by auth middleware
       const moduleId = req.body.moduleId; // Assuming moduleId is sent in the request body if needed
 
-      // Fetch user permissions
-      const userPermissions = await userPermission
-        .findOne({ userId })
-        .populate({
-          path: "groupPermissionId",
-          populate: {
-            path: "permission",
-            match: moduleId ? { moduleId } : "ModuleId is not matched.",
-          },
-        });
+      if (req.user?.role === "admin") return next();
 
-      if (!userPermissions) {
+      // Fetch user permissions
+      // const userPermissions = await userPermission
+      //   .findOne({ userId })
+      //   .populate({
+      //     path: "groupPermissionId",
+      //     populate: {
+      //       path: "permission",
+      //       match: moduleId ? { moduleId } : "ModuleId is not matched.",
+      //     },
+      //   });
+
+      // if (!userPermissions) {
+      //   return res.status(403).json({ message: "User permissions not found" });
+      // }
+
+      // console.log(
+      //   userPermissions.groupPermissionId,
+      //   "aaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      // );
+
+      const user = await userSchema.findOne({ _id: userId }).populate({
+        path: "permission",
+        populate: {
+          path: "permission",
+          match: moduleId ? { moduleId } : "ModuleId is not matched.",
+        },
+      });
+
+      if (!user) {
         return res.status(403).json({ message: "User permissions not found" });
       }
 
       // Collect permissions from user-specific permissions
-      const userPermissionList = userPermissions.groupPermissionId?.flatMap(
-        (groupPermission) =>
-          groupPermission.permission?.flatMap(
-            (permission) => permission.permissions
-          )
-      );
-
-      console.log(userPermissions, "aaaaaaaaaaaaaa");
-      console.log(userPermissions.groupPermissionId, "bbbbbbbbbbbbbbbbb");
-      console.log(groupPermission, "ccccccccccc");
-
-      // Check if the user has the required permission
-      if (userPermissionList.includes(requiredPermission)) {
+      if (user.permission.includes(requiredPermission)) {
         return next();
       }
-
+      console.log(user, "aaaaaaaaaaaaaaaaaaaaaaaaaaa");
       // If no permissions match, deny access
       return res.status(403).json({ message: "Permission denied" });
     } catch (error) {
@@ -323,5 +220,53 @@ const checkPermission = (requiredPermission, moduleId) => {
     }
   };
 };
+
+// const checkPermission = (requiredPermission, moduleId) => {
+//   return async (req, res, next) => {
+//     try {
+//       const userId = req.user._id; // Assumes user is set in req.user by auth middleware
+//       const moduleId = req.body.moduleId; // Assuming moduleId is sent in the request body if needed
+
+//       // Fetch user permissions
+//       const userPermissions = await userPermission
+//         .findOne({ userId })
+//         .populate({
+//           path: "groupPermissionId",
+//           populate: {
+//             path: "permission",
+//             match: moduleId ? { moduleId } : "ModuleId is not matched.",
+//           },
+//         });
+
+//       if (!userPermissions) {
+//         return res.status(403).json({ message: "User permissions not found" });
+//       }
+
+//       // Collect permissions from user-specific permissions
+//       const userPermissionList = userPermissions.groupPermissionId?.map(
+//         (gPermission) =>
+//           gPermission.permission?.map((prmsn) => prmsn.permissions)
+//       );
+
+//       console.log(userPermissions, "aaaaaaaaaaaaaa");
+//       console.log(userPermissions.groupPermissionId, "bbbbbbbbbbbbbbbbb");
+//       console.log(gPermission, "ccccccccccc");
+//       console.log(prmsn, "ddddddddddddd");
+
+//       // Check if the user has the required permission
+//       if (userPermissionList.includes(requiredPermission)) {
+//         return next();
+//       }
+
+//       // If no permissions match, deny access
+//       return res.status(403).json({ message: "Permission denied" });
+//     } catch (error) {
+//       console.error("Error checking permissions:", error.message);
+//       return res
+//         .status(500)
+//         .json({ message: "Internal server error", error: error.message });
+//     }
+//   };
+// };
 
 export { authMiddleware, checkPermission };
