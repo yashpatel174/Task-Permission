@@ -3,6 +3,8 @@ import userSchema from "../model/userSchema.js";
 import permissionSchema from "../model/permissionSchema.js";
 import userPermission from "../model/userPermission.js";
 import groupPermission from "../model/groupPermission.js";
+import moduleSchema from "../model/moduleSchema.js";
+import mongoose from "mongoose";
 
 const authMiddleware = async (req, res, next) => {
   const token = req.header("Authorization");
@@ -24,6 +26,10 @@ const authMiddleware = async (req, res, next) => {
 
     req.token = token;
     req.user = user;
+
+    if (req.user?.role === "admin") {
+      return next();
+    }
 
     next();
   } catch (error) {
@@ -112,9 +118,17 @@ const authMiddleware = async (req, res, next) => {
 
 //       console.log(userPermissions, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
+//       // Fetch group permissions
 //       const groupPermissions = await groupPermission
-//         .find({ groupId: group })
-//         .populate({ path: "permission", strictPopulate: false });
+//         .find({ groupId: { $in: group } })
+//         .populate({
+//           path: "permission",
+//           match: { id: moduleId },
+//         });
+
+//       // const groupPermissions = await groupPermission
+//       //   .find({ groupId: group })
+//       //   .populate({ path: "permission", strictPopulate: false });
 
 //       console.log(groupPermissions, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
 
@@ -133,7 +147,7 @@ const authMiddleware = async (req, res, next) => {
 //         const gPermission = await permissionSchema.findById(
 //           groupPermissions.permission
 //         );
-//         permissions = permissions.concat(groupPermission.permissions);
+//         permissions = permissions.concat(gPermission.permissions);
 //       }
 
 //       if (!permissions.length) {
@@ -152,10 +166,7 @@ const authMiddleware = async (req, res, next) => {
 //         permissions?.includes(permission)
 //       );
 
-//       if (!hasPermission)
-//         return res.send({
-//           message: "Access denied as this user has already the permission.",
-//         });
+//       if (!hasPermission) return next();
 //     } catch (error) {
 //       res.status(500).send({
 //         success: false,
@@ -165,67 +176,13 @@ const authMiddleware = async (req, res, next) => {
 //     }
 //   };
 
-const checkPermission = (requiredPermission, moduleId) => {
-  return async (req, res, next) => {
-    try {
-      const userId = req.user._id; // Assumes user is set in req.user by auth middleware
-      const moduleId = req.body.moduleId; // Assuming moduleId is sent in the request body if needed
-
-      if (req.user?.role === "admin") return next();
-
-      // Fetch user permissions
-      // const userPermissions = await userPermission
-      //   .findOne({ userId })
-      //   .populate({
-      //     path: "groupPermissionId",
-      //     populate: {
-      //       path: "permission",
-      //       match: moduleId ? { moduleId } : "ModuleId is not matched.",
-      //     },
-      //   });
-
-      // if (!userPermissions) {
-      //   return res.status(403).json({ message: "User permissions not found" });
-      // }
-
-      // console.log(
-      //   userPermissions.groupPermissionId,
-      //   "aaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      // );
-
-      const user = await userSchema.findOne({ _id: userId }).populate({
-        path: "permission",
-        populate: {
-          path: "permission",
-          match: moduleId ? { moduleId } : "ModuleId is not matched.",
-        },
-      });
-
-      if (!user) {
-        return res.status(403).json({ message: "User permissions not found" });
-      }
-
-      // Collect permissions from user-specific permissions
-      if (user.permission.includes(requiredPermission)) {
-        return next();
-      }
-      console.log(user, "aaaaaaaaaaaaaaaaaaaaaaaaaaa");
-      // If no permissions match, deny access
-      return res.status(403).json({ message: "Permission denied" });
-    } catch (error) {
-      console.error("Error checking permissions:", error.message);
-      return res
-        .status(500)
-        .json({ message: "Internal server error", error: error.message });
-    }
-  };
-};
-
 // const checkPermission = (requiredPermission, moduleId) => {
 //   return async (req, res, next) => {
 //     try {
 //       const userId = req.user._id; // Assumes user is set in req.user by auth middleware
 //       const moduleId = req.body.moduleId; // Assuming moduleId is sent in the request body if needed
+
+//       if (req.user?.role === "admin") return next();
 
 //       // Fetch user permissions
 //       const userPermissions = await userPermission
@@ -242,22 +199,28 @@ const checkPermission = (requiredPermission, moduleId) => {
 //         return res.status(403).json({ message: "User permissions not found" });
 //       }
 
-//       // Collect permissions from user-specific permissions
-//       const userPermissionList = userPermissions.groupPermissionId?.map(
-//         (gPermission) =>
-//           gPermission.permission?.map((prmsn) => prmsn.permissions)
+//       console.log(
+//         userPermissions.groupPermissionId,
+//         "aaaaaaaaaaaaaaaaaaaaaaaaaaa"
 //       );
 
-//       console.log(userPermissions, "aaaaaaaaaaaaaa");
-//       console.log(userPermissions.groupPermissionId, "bbbbbbbbbbbbbbbbb");
-//       console.log(gPermission, "ccccccccccc");
-//       console.log(prmsn, "ddddddddddddd");
+//       // const user = await userSchema.findOne({ _id: userId }).populate({
+//       //   path: "permission",
+//       //   populate: {
+//       //     path: "permission",
+//       //     match: moduleId ? { moduleId } : "ModuleId is not matched.",
+//       //   },
+//       // });
 
-//       // Check if the user has the required permission
-//       if (userPermissionList.includes(requiredPermission)) {
-//         return next();
-//       }
+//       // if (!user) {
+//       //   return res.status(403).json({ message: "User permissions not found" });
+//       // }
 
+//       // // Collect permissions from user-specific permissions
+//       // if (user.permission?.includes(requiredPermission)) {
+//       //   return next();
+//       // }
+//       // console.log(user, "aaaaaaaaaaaaaaaaaaaaaaaaaaa");
 //       // If no permissions match, deny access
 //       return res.status(403).json({ message: "Permission denied" });
 //     } catch (error) {
@@ -269,4 +232,130 @@ const checkPermission = (requiredPermission, moduleId) => {
 //   };
 // };
 
+// const checkPermission =
+//   (requiredPermission, moduleId) => async (req, res, next) => {
+//     const user = req.user;
+
+//     try {
+//       console.log("Required Permission:", requiredPermission);
+//       console.log("Module ID:", moduleId);
+
+//       const permission = await permissionSchema
+//         .findOne({
+//           permissions: { $in: [requiredPermission] },
+//           moduleId: new mongoose.Types.ObjectId(moduleId),
+//         })
+//         .populate({ path: "module", strictPopulate: false });
+//       console.log(permission, "Retrieved Permission");
+
+//       if (!permission) return res.send({ message: "Invalid Permission" });
+
+//       const gPermission = await groupPermission.findOne({ permission });
+//       console.log(gPermission, "gggggggggggggggggggggggggg");
+
+//       if (!gPermission)
+//         return res.send({
+//           message: "Permission does not match",
+//         });
+
+//       const user = await userSchema.findOne({ permission: gPermission });
+//       console.log(user, "uuuuuuuuuuuuuuuuuuuuu");
+//       if (!user.includes(gPermission)) {
+//         return res.send({ message: "This user does not belong to the group." });
+//       }
+//       next();
+//     } catch (error) {
+//       res.status(500).send({
+//         success: false,
+//         message: "Error while checking permissions",
+//         error: error.message,
+//       });
+//     }
+//   };
+
+const checkPermission =
+  (requiredPermission, getModuleName) => async (req, res, next) => {
+    if (req.uesr?.role === "admin") return next();
+
+    const user = req.user;
+    const userGroup = user.group;
+    const userId = user._id;
+    const moduleName = getModuleName(req);
+    // console.log(userId, "user Id");
+    // console.log(userGroup, "user's group");
+
+    try {
+      const module = await moduleSchema.findOne({ moduleName });
+      // console.log(module, "module");
+
+      if (!module) res.send({ message: "module not found" });
+
+      const moduleId = module._id;
+      // console.log(moduleId, "moduleId");
+
+      // Find the permission with the required permission and moduleId
+      const permission = await permissionSchema
+        .findOne({
+          permissions: { $in: [requiredPermission] },
+          moduleId,
+        })
+        .populate({ path: "module", strictPopulate: false });
+
+      console.log(permission, "permission");
+
+      if (!permission)
+        return res
+          .status(403)
+          .send({ message: "You do not have access for this module" });
+
+      let prmsn = [];
+
+      // Check for group permission
+      const gPermission = await groupPermission.findOne({
+        groupId: userGroup,
+        permission: permission,
+      });
+
+      const uPermission = await userPermission.findOne({
+        userId,
+        groupPermissionId: gPermission,
+      });
+
+      prmsn.push(gPermission);
+
+      console.log(prmsn, "ppppppppppppppppppppppppppp");
+
+      console.log(permission, "Permission");
+      console.log(userGroup, "Group");
+      console.log(gPermission, "Group Permission");
+      console.log(userId, "User");
+
+      if (prmsn.length < 1)
+        return res.status(403).send({
+          message:
+            "Permission does not match or the member does not belong to this group",
+        });
+
+      if (!uPermission)
+        return res.send({
+          message: "This permission is not provided to this member.",
+        });
+
+      next();
+    } catch (error) {
+      console.error("Error while checking permissions:", error);
+      res.status(500).send({
+        success: false,
+        message: "Error while checking permissions",
+        error: error.message,
+      });
+    }
+  };
+
 export { authMiddleware, checkPermission };
+
+// console.log(user.userName, "Userrrrrrrrrrrrr");
+// console.log(userGroup, "user's group");
+// console.log(permission, "permission Id");
+// console.log(gPermission), "group permission Id";
+// console.log(user.permission, "user's group permissions id");

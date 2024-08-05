@@ -21,25 +21,25 @@ router.post(
 router.get(
   "/",
   authMiddleware,
-  checkPermission(["GetAll"], (req) => req.body.moduleId),
+  checkPermission(["FindAll"], (req) => req.body.moduleId),
   getAllModules
 );
 router.get(
   "/:moduleName",
   authMiddleware,
-  checkPermission(["Get"], (req) => req.body.moduleId),
+  checkPermission(["FindOne"], (req) => req.params.moduleName),
   getSingleModule
 );
 router.patch(
   "/update/:moduleName",
   authMiddleware,
-  checkPermission(["Update"], (req) => req.body.moduleId),
+  checkPermission(["Update"], (req) => req.params.moduleName),
   updateModule
 );
 router.delete(
   "/delete/:moduleName",
   authMiddleware,
-  checkPermission(["Delete"], (req) => req.body.moduleId),
+  checkPermission(["Delete"], (req) => req.params.moduleName),
   deleteModule
 );
 

@@ -5,7 +5,7 @@ const moduleSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
-  moduleId: {
+  moduleNumber: {
     type: Number,
     unique: true,
   },

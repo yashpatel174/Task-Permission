@@ -2,12 +2,13 @@ import moduleSchema from "../model/moduleSchema.js";
 
 // Create a new module
 
-const createModule = async (req, res, next) => {
+const createModule = async (req, res) => {
   try {
-    const { moduleName, moduleId } = req.body;
+    const { moduleName, moduleNumber } = req.body;
 
-    const module = new moduleSchema({ moduleName, moduleId });
+    const module = new moduleSchema({ moduleName, moduleNumber });
     await module.save();
+    console.log(module, "aaaaaaaaaaaaa");
 
     if (!module) res.status(404).send({ message: "Module not found" });
 
@@ -68,12 +69,12 @@ const getSingleModule = async (req, res) => {
 
 const updateModule = async (req, res) => {
   const { moduleName } = req.params;
-  const { newName, newId } = req.body;
+  const { newName, moduleNumber } = req.body;
 
   try {
     const module = await moduleSchema.findOneAndUpdate(
       { moduleName },
-      { moduleName: newName, moduleId: newId },
+      { moduleName: newName, moduleNumber },
       { new: true, runValidators: true }
     );
 
@@ -105,6 +106,7 @@ const deleteModule = async (req, res) => {
     const { moduleName } = req.params;
 
     const module = await moduleSchema.findOneAndDelete({ moduleName });
+    f;
 
     if (!module) res.status(404).send({ message: "Module not found" });
 
