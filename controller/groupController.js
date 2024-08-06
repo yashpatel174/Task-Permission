@@ -9,7 +9,14 @@ const createGroup = async (req, res) => {
   if (!groupName) return res.send({ mesasge: "Groupname is required" });
 
   try {
-    const group = groupSchema({ groupName, permission });
+    const existingGroup = await groupSchema.findOne({ groupName });
+
+    if (existingGroup)
+      return res.send({
+        message: `${groupName} already exists, Please create with another name.`,
+      });
+
+    const group = new groupSchema({ groupName, permission });
 
     if (!group) return res.send({ message: "Failed creating group." });
 
@@ -29,13 +36,73 @@ const createGroup = async (req, res) => {
   }
 };
 
+const getAllGroups = async (req, res) => {
+  try {
+    const groups = await groupSchema.find({});
+    if (!groups) return res.send({ message: "Failed listing the groups" });
+
+    const groupList = groups?.map((group) => group.groupName);
+
+    console.log(groupList, "aaaaaaaaaaaaaaaaaaa");
+
+    res.status(200).send({
+      success: true,
+      message: `There are totel ${groupList.length} groups as you can see the list of existing groups below.`,
+      groupList,
+    });
+  } catch (error) {
+    res.send(500).send({
+      success: false,
+      message: "Error while getting all groups.",
+      error: error.message,
+    });
+  }
+};
+
+const removeGroup = async (req, res) => {
+  const { groupName } = req.params;
+
+  if (!groupName)
+    return res.send({
+      message: "Which group you want to delete? Kindly provide the group name.",
+    });
+
+  try {
+    const group = await groupSchema.findOne({ groupName });
+
+    if (!group)
+      return res.send({ message: "Any group by this name is not exist." });
+
+    if (group.members?.length > 0)
+      return res.send({
+        message: "Group can not be deleted as this group Contains members.",
+      });
+
+    const removedGroup = await groupSchema.findOneAndDelete({ groupName });
+    console.log(removedGroup, "0000000000000000000");
+
+    res.status(200).send({
+      success: true,
+      message: `${groupName} removed successfully.`,
+    });
+  } catch (error) {
+    res.status(500).send({
+      succcess: false,
+      message: "Error while removing group.",
+      error: error.message,
+    });
+  }
+};
+
 const addUsers = async (req, res) => {
   const { groupName, userName } = req.body;
 
-  if (!userName || !groupName) {
-    return res
-      .status(400)
-      .send({ message: "Username and group name are required." });
+  if (!userName) {
+    return res.status(400).send({ message: "Username is missing" });
+  }
+
+  if (!groupName) {
+    return res.status(400).send({ message: "Groupname is missing" });
   }
 
   try {
@@ -80,16 +147,20 @@ const addUsers = async (req, res) => {
 const removeUsers = async (req, res) => {
   const { groupName, userName } = req.body;
 
+  if (!userName) {
+    return res.status(400).send({ message: "Username is missing" });
+  }
+
+  if (!groupName) {
+    return res.status(400).send({ message: "Groupname is missing" });
+  }
+
   try {
     const group = await groupSchema.findOne({ groupName });
     const user = await userSchema.findOne({ userName });
 
-    if (!group || !user) {
-      return res.status(404).send({
-        success: false,
-        message: "Something is missing.",
-      });
-    }
+    if (!group) return res.status(404).send({ message: "Group not found." });
+    if (!user) return res.status(404).send({ message: "User not found." });
 
     if (group.members?.includes(user._id.toString())) {
       group.members?.remove(user._id.toString());
@@ -119,10 +190,13 @@ const gPermission = async (req, res) => {
   const { groupId } = req.params;
   const { moduleId, permissions } = req.body;
 
-  if (!groupId || !moduleId || !permissions)
-    return res.send({ message: "required fields are necessary." });
-
-  if (!groupId || !permissions || !moduleId) {
+  if (
+    !groupId ||
+    !permissions ||
+    (permissions.includes("Create") || permissions.includes("FindAll")
+      ? false
+      : !moduleId)
+  ) {
     return res.send({ message: "Required fields are necessary." });
   }
 
@@ -173,29 +247,106 @@ const gPermission = async (req, res) => {
   }
 };
 
+// const removeGroupPermission = async (req, res) => {
+//   const { groupId } = req.params;
+//   const { moduleId, permissions } = req.body;
+
+//   if (!groupId || !moduleId || !permissions) {
+//     return res.status(400).send({ message: "Required fields are necessary." });
+//   }
+
+//   try {
+//     // Find the existing permission
+//     const existPermission = await permissionSchema.findOne({
+//       moduleId,
+//       permissions,
+//     });
+
+//     const group = await groupSchema.findById(groupId);
+//     if (!group) {
+//       return res.status(404).send({ message: "Group does not exist." });
+//     }
+
+//     if (!existPermission) {
+//       return res
+//         .status(404)
+//         .send({ message: `Permission is not provided to ${group.groupName}.` });
+//     }
+
+//     // Remove the permission
+//     await permissionSchema.findOneAndDelete({ _id: existPermission._id });
+
+//     // Find the group permission
+//     const gPermission = await groupPermission.findOne({
+//       groupId,
+//       permission: existPermission._id,
+//     });
+
+//     if (!gPermission) {
+//       return res.status(404).send({
+//         message: "Group permission does not exist for this group.",
+//       });
+//     }
+
+//     // Remove the group permission
+//     await groupPermission.findOneAndDelete({ _id: gPermission._id });
+
+//     // Find the group and remove the group permission from its permissions array
+//     group.permission = group.permission.filter(
+//       (perm) => perm.toString() !== gPermission._id.toString()
+//     );
+
+//     await group.save();
+
+//     res.status(200).send({
+//       success: true,
+//       message: `Permission removed from ${group.groupName} successfully.`,
+//     });
+//   } catch (error) {
+//     res.status(500).send({
+//       success: false,
+//       message: "Error while removing permissions from the group.",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const removeGroupPermission = async (req, res) => {
   const { groupId } = req.params;
   const { moduleId, permissions } = req.body;
 
-  if (!groupId || !moduleId || !permissions) {
+  // Ensure required fields are present
+  if (!groupId || !permissions) {
     return res.status(400).send({ message: "Required fields are necessary." });
   }
 
   try {
-    // Find the existing permission
-    const existPermission = await permissionSchema.findOne({
-      moduleId,
-      permissions,
-    });
+    let permissionQuery = {
+      permissions: { $in: permissions },
+    };
 
-    if (!existPermission) {
-      return res
-        .status(404)
-        .send({ message: `Permission is not provided to ${group.groupName}.` });
+    // For permissions that do not include "Create" or "FindAll", moduleId is required
+    if (!permissions.includes("Create") && !permissions.includes("FindAll")) {
+      if (!moduleId) {
+        return res
+          .status(400)
+          .send({ message: "ModuleId is required for this permission." });
+      }
+      permissionQuery.moduleId = moduleId;
     }
 
-    // Remove the permission
-    await permissionSchema.findOneAndDelete({ _id: existPermission._id });
+    // Find the existing permission
+    const existPermission = await permissionSchema.findOne(permissionQuery);
+    if (!existPermission) {
+      const group = await groupSchema.findById(groupId);
+      if (!group) {
+        return res.status(404).send({ message: "Group does not exist." });
+      }
+
+      return res
+        .status(404)
+        .send({ message: "There are no permissios to remove." });
+    }
 
     // Find the group permission
     const gPermission = await groupPermission.findOne({
@@ -208,6 +359,9 @@ const removeGroupPermission = async (req, res) => {
         message: "Group permission does not exist for this group.",
       });
     }
+
+    // Remove the permission
+    await permissionSchema.findOneAndDelete({ _id: existPermission._id });
 
     // Remove the group permission
     await groupPermission.findOneAndDelete({ _id: gPermission._id });
@@ -364,6 +518,8 @@ const removeUserPermission = async (req, res) => {
 
 export {
   createGroup,
+  getAllGroups,
+  removeGroup,
   addUsers,
   removeUsers,
   gPermission,

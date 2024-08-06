@@ -3,14 +3,15 @@ import moduleSchema from "../model/moduleSchema.js";
 // Create a new module
 
 const createModule = async (req, res) => {
-  try {
-    const { moduleName, moduleNumber } = req.body;
+  const { moduleName, moduleNumber } = req.body;
+  if (!moduleName || !moduleNumber)
+    return res.send({ message: "Enter the required fields." });
 
+  try {
     const module = new moduleSchema({ moduleName, moduleNumber });
     await module.save();
-    console.log(module, "aaaaaaaaaaaaa");
 
-    if (!module) res.status(404).send({ message: "Module not found" });
+    if (!module) res.status(404).send({ message: "Module not created." });
 
     res.status(200).send({
       success: true,
@@ -31,7 +32,11 @@ const getAllModules = async (req, res) => {
   try {
     const modules = await moduleSchema.find({});
 
-    if (!modules) res.status(404).send({ message: "No modules found" });
+    if (!modules)
+      res.status(404).send({
+        message:
+          "Module not exist so you may create a new module by this name.",
+      });
 
     res.status(200).send(modules);
   } catch (error) {
@@ -87,7 +92,7 @@ const updateModule = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Module updated successfully",
+      message: `${moduleName}updated successfully.`,
       module,
     });
   } catch (error) {
@@ -106,13 +111,12 @@ const deleteModule = async (req, res) => {
     const { moduleName } = req.params;
 
     const module = await moduleSchema.findOneAndDelete({ moduleName });
-    f;
 
     if (!module) res.status(404).send({ message: "Module not found" });
 
     res.status(200).send({
       success: true,
-      message: "Module deleted successfully",
+      message: `${moduleName} deleted successfully.`,
       module,
     });
   } catch (error) {

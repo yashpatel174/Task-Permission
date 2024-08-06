@@ -4,12 +4,18 @@ import {
   uPermission,
   removeUserPermission,
 } from "../controller/groupController.js";
+import { authMiddleware, isAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
-router.post("/permission", uPermission);
-router.post("/permission/remove", removeUserPermission);
+router.post("/permission", authMiddleware, isAdmin, uPermission);
+router.post(
+  "/permission/remove",
+  authMiddleware,
+  isAdmin,
+  removeUserPermission
+);
 
 export default router;
