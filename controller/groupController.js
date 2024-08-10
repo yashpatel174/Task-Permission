@@ -213,15 +213,15 @@ const gPermission = async (req, res) => {
     // prmsn = new permissionSchema({ moduleId, permissions });
     // await prmsn.save();
 
+    const group = await groupSchema.findById(groupId);
+    if (!group) return res.send({ message: "Group does not exist." });
+
     // * store the created permissions to the group permission.
     const gPermission = new groupPermission({
       groupId,
       permission: prmsn._id,
     });
     await gPermission.save();
-
-    const group = await groupSchema.findById(groupId);
-    if (!group) return res.send({ message: "Group does not exist." });
 
     if (group.permission?.includes(gPermission)) {
       return res.send({
@@ -326,7 +326,7 @@ const removeGroupPermission = async (req, res) => {
     };
 
     // For permissions that do not include "Create" or "FindAll", moduleId is required
-    if (!permissions.includes("Create") && !permissions.includes("FindAll")) {
+    if (!permissions?.includes("Create") && !permissions?.includes("FindAll")) {
       if (!moduleId) {
         return res
           .status(400)
@@ -338,11 +338,6 @@ const removeGroupPermission = async (req, res) => {
     // Find the existing permission
     const existPermission = await permissionSchema.findOne(permissionQuery);
     if (!existPermission) {
-      const group = await groupSchema.findById(groupId);
-      if (!group) {
-        return res.status(404).send({ message: "Group does not exist." });
-      }
-
       return res
         .status(404)
         .send({ message: "There are no permissios to remove." });
@@ -415,7 +410,7 @@ const uPermission = async (req, res) => {
       return res.status(404).send({ message: "User not found." });
     }
 
-    //* Compairing group of group permissions with group of user
+    //* Comparing group of group permissions with group of user
     const userGroups = user.group.map((group) => group.toString());
     const gId = gPermission.groupId.toString();
 
@@ -428,13 +423,20 @@ const uPermission = async (req, res) => {
         .send({ message: "This user is not a member of this group." });
     }
 
+    if (user?.role === "admin") {
+      return res.send({
+        message:
+          "You are providing permissions to admin, please verify the user before providing permission.",
+      });
+    }
+
     //* Create user permission
     const uPermission = new userPermission({ userId, groupPermissionId });
     await uPermission.save();
     // console.log(uPermission, "eeeeeeeeeeeeeeeeeeeeeeeeee");
 
-    //* providing permissions to the user.
     if (!user.permission?.includes(groupPermissionId)) {
+      //* providing permissions to the user.
       user.permission?.push(groupPermissionId);
     }
     await user.save();
@@ -482,6 +484,13 @@ const removeUserPermission = async (req, res) => {
       return res
         .status(400)
         .send({ message: "This user is not a member of this group." });
+    }
+
+    if (user?.role === "admin") {
+      return res.send({
+        message:
+          "You are removing permissions from admin, please verify the user before removing permission.",
+      });
     }
 
     // Remove the user permission

@@ -8,6 +8,10 @@ const createModule = async (req, res) => {
     return res.send({ message: "Enter the required fields." });
 
   try {
+    const existModule = await moduleSchema.findOne({ moduleName });
+    if (existModule)
+      return res.send({ messagse: `${moduleName} already exist.` });
+
     const module = new moduleSchema({ moduleName, moduleNumber });
     await module.save();
 
@@ -34,8 +38,7 @@ const getAllModules = async (req, res) => {
 
     if (!modules)
       res.status(404).send({
-        message:
-          "Module not exist so you may create a new module by this name.",
+        message: "There are no modules.",
       });
 
     res.status(200).send(modules);
@@ -86,7 +89,7 @@ const updateModule = async (req, res) => {
     if (!module) {
       return res.status(404).send({
         success: false,
-        message: "Module not found.",
+        message: "Module not updated.",
       });
     }
 
@@ -112,7 +115,7 @@ const deleteModule = async (req, res) => {
 
     const module = await moduleSchema.findOneAndDelete({ moduleName });
 
-    if (!module) res.status(404).send({ message: "Module not found" });
+    if (!module) res.status(404).send({ message: "You deleted this module" });
 
     res.status(200).send({
       success: true,

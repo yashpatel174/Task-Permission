@@ -30,7 +30,6 @@ const userSchema = new mongoose.Schema({
       default: [],
     },
   ],
-  // permissions: [{ type: String }],
 });
 
 userSchema.pre("save", async function (next) {

@@ -42,86 +42,94 @@ const authMiddleware = async (req, res, next) => {
 };
 
 // ************************************************************************************************
-const checkPermission =
-  (requiredPermission, getModuleName) => async (req, res, next) => {
-    if (req.user?.role === "admin") {
-      return next();
-    }
+// const checkPermission =
+//   (requiredPermission, getModuleName) => async (req, res, next) => {
+//     if (req.user?.role === "admin") {
+//       return next();
+//     }
 
-    const user = req.user;
-    const userGroup = user.group;
-    const userId = user._id;
-    const moduleName = getModuleName(req);
-    console.log(user, "userrrrrrrrrrrrrrrrrrrrrrrrrrr");
-    // console.log(userGroup, "user's group");
+//     const user = req.user;
+//     const userGroup = user.group;
+//     const userId = user._id;
+//     const moduleName = getModuleName(req);
+//     console.log(user, "userrrrrrrrrrrrrrrrrrrrrrrrrrr");
+//     // console.log(userGroup, "user's group");
 
-    try {
-      const module = await moduleSchema.findOne({ moduleName });
-      console.log(module, "module");
+//     try {
+//       const module = await moduleSchema.findOne({ moduleName });
+//       console.log(module, "module");
 
-      if (!module) res.send({ message: "Module not exist." });
+//       if (!module)
+//         res.send({
+//           message: "You do not have the permission for this module.",
+//         });
 
-      // const moduleId = module._id;
-      // console.log(moduleId, "moduleId");
+//       // const moduleId = module._id;
+//       // console.log(moduleId, "moduleId");
 
-      // Find the permission with the required permission and moduleId
-      const permission = await permissionSchema
-        .findOne({
-          permissions: { $in: [requiredPermission] },
-          moduleId: module._id,
-        })
-        .populate({ path: "module", strictPopulate: false });
+//       // Find the permission with the required permission and moduleId
+//       const permission = await permissionSchema
+//         .findOne({
+//           permissions: { $in: [requiredPermission] },
+//           moduleId: module._id,
+//         })
+//         .populate({ path: "module", strictPopulate: false });
 
-      console.log(permission, "permission");
+//       console.log(permission, "permission");
 
-      if (!permission)
-        return res
-          .status(403)
-          .send({ message: "You do not have access for this module" });
+//       if (!permission)
+//         return res
+//           .status(403)
+//           .send({ message: "This permission is not provided to this module." });
 
-      let prmsn = [];
+//       let prmsn = [];
 
-      // Check for group permission
-      const gPermission = await groupPermission.findOne({
-        groupId: userGroup,
-        permission: permission,
-      });
+//       // Check for group permission
+//       const gPermission = await groupPermission.findOne({
+//         groupId: userGroup,
+//         permission: permission,
+//       });
 
-      const uPermission = await userPermission.findOne({
-        userId,
-        groupPermissionId: gPermission,
-      });
+//       if (!gPermission)
+//         return res.send({
+//           message: `Permission is not provided to this group.`,
+//         });
 
-      prmsn.push(gPermission);
+//       const uPermission = await userPermission.findOne({
+//         userId,
+//         groupPermissionId: gPermission,
+//       });
 
-      console.log(prmsn, "ppppppppppppppppppppppppppp");
+//       if (!uPermission)
+//         return res.send({
+//           message: `Permission is not provided to this user.`,
+//         });
 
-      console.log(permission, "Permission");
-      console.log(userGroup, "Group");
-      console.log(gPermission, "Group Permission");
-      console.log(userId, "User");
+//       prmsn.push(gPermission);
 
-      if (prmsn.length < 1)
-        return res.status(403).send({
-          message:
-            "Permission does not match or the member does not belong to this group",
-        });
+//       console.log(prmsn, "ppppppppppppppppppppppppppp");
 
-      if (!uPermission)
-        return res.send({
-          message: "This permission is not provided to this member.",
-        });
+//       console.log(permission, "Permission");
+//       console.log(userGroup, "Group");
+//       console.log(gPermission, "Group Permission");
+//       console.log(userId, "User");
 
-      next();
-    } catch (error) {
-      console.error("Error while checking permissions:", error);
-      res.status(500).send({
-        success: false,
-        message: "Error while checking permissions",
-        error: error.message,
-      });
-    }
-  };
+//       if (prmsn.length < 1)
+//         return res.status(403).send({
+//           message:
+//             "Permission does not match or the member does not belong to this group",
+//         });
+
+//       next();
+//     } catch (error) {
+//       console.error("Error while checking permissions:", error);
+//       res.status(500).send({
+//         success: false,
+//         message: "Error while checking permissions",
+//         error: error.message,
+//       });
+//     }
+//   };
 // ************************************************************************************************
 
 // const checkPermission =
@@ -210,101 +218,105 @@ const checkPermission =
 //     }
 //   };
 
-// const checkPermission =
-//   (requiredPermission, getModuleName) => async (req, res, next) => {
-//     if (req.user?.role === "admin") {
-//       return next();
-//     }
+const checkPermission =
+  (requiredPermission, getModuleName) => async (req, res, next) => {
+    if (req.user?.role === "admin") {
+      return next();
+    }
 
-//     const user = req.user;
-//     const userGroup = user.group;
-//     const userId = user._id;
+    const user = req.user;
+    const userGroup = user.group;
+    const userId = user._id;
 
-//     let moduleName = getModuleName(req);
+    let moduleName = getModuleName(req);
 
-//     // Log for debugging
-//     console.log(user, "User");
-//     console.log(userGroup, "User Group");
-//     console.log(userId, "User ID");
-//     console.log(moduleName, "Module Name");
-//     console.log(requiredPermission, "Required Permissions");
+    // Log for debugging
+    console.log(user, "User");
+    console.log(userGroup, "User Group");
+    console.log(userId, "User ID");
+    console.log(moduleName, "Module Name");
+    console.log(requiredPermission, "Required Permissions");
 
-//     try {
-//       let moduleId;
+    try {
+      let moduleId;
 
-//       // If the permission is "FindAll" or "Create", do not use moduleName
-//       if (requiredPermission === "Create" || "FindAll") {
-//         return (moduleName = null); // Skip moduleId check
-//       }
+      // If the permission is "FindAll" or "Create", do not use moduleName
+      if (requiredPermission === "FindAll") {
+        return next();
+      }
 
-//       // For other permissions, find the module ID
-//       moduleName = getModuleName(req); // Ensure this correctly retrieves moduleName
-//       const module = await moduleSchema.findOne({ moduleName });
-//       if (!module) {
-//         return res.status(404).send({ message: "Module not found" });
-//       }
-//       moduleId = module._id;
-//       console.log(moduleName, "Module Name from DB");
+      if (requiredPermission === "Create") {
+        return next();
+      }
+      // For other permissions, find the module ID
+      moduleName = getModuleName(req); // Ensure this correctly retrieves moduleName
 
-//       // Prepare the permission query
-//       const permissionQuery = {
-//         permissions: { $in: [requiredPermission] },
-//       };
-//       if (moduleId) {
-//         permissionQuery.moduleId = moduleId;
-//       }
+      const module = await moduleSchema.findOne({ moduleName });
+      if (!module) {
+        return res.status(404).send({ message: "Module not found" });
+      }
+      moduleId = module._id;
+      console.log(moduleName, "Module Name from DB");
 
-//       console.log(permissionQuery, "Permission Query");
+      // Prepare the permission query
+      const permissionQuery = {
+        permissions: { $in: [requiredPermission] },
+      };
+      if (moduleId) {
+        permissionQuery.moduleId = moduleId;
+      }
 
-//       // Find the permission
-//       const permission = await permissionSchema
-//         .findOne(permissionQuery)
-//         .populate({ path: "module", strictPopulate: false });
+      console.log(permissionQuery, "Permission Query");
 
-//       console.log(permission, "Permission");
+      // Find the permission
+      const permission = await permissionSchema
+        .findOne(permissionQuery)
+        .populate({ path: "module", strictPopulate: false });
 
-//       if (!permission) {
-//         return res
-//           .status(403)
-//           .send({ message: "You do not have access for this module" });
-//       }
+      console.log(permission, "Permission");
 
-//       // Check for group permission
-//       const gPermission = await groupPermission.findOne({
-//         groupId: userGroup,
-//         permission: permission._id,
-//       });
+      if (!permission) {
+        return res
+          .status(403)
+          .send({ message: "You do not have access for this module" });
+      }
 
-//       console.log(gPermission, "Group Permission");
+      // Check for group permission
+      const gPermission = await groupPermission.findOne({
+        groupId: userGroup,
+        permission: permission._id,
+      });
 
-//       if (!gPermission) {
-//         return res.status(403).send({ message: "Group permission not found" });
-//       }
+      console.log(gPermission, "Group Permission");
 
-//       // Check for user-specific permission
-//       const uPermission = await userPermission.findOne({
-//         userId,
-//         groupPermissionId: gPermission._id,
-//       });
+      if (!gPermission) {
+        return res.status(403).send({ message: "Group permission not found" });
+      }
 
-//       console.log(uPermission, "User Permission");
+      // Check for user-specific permission
+      const uPermission = await userPermission.findOne({
+        userId,
+        groupPermissionId: gPermission._id,
+      });
 
-//       if (!uPermission) {
-//         return res
-//           .status(403)
-//           .send({ message: "This permission is not provided to this member" });
-//       }
+      console.log(uPermission, "User Permission");
 
-//       next();
-//     } catch (error) {
-//       console.error("Error while checking permissions:", error);
-//       res.status(500).send({
-//         success: false,
-//         message: "Error while checking permissions",
-//         error: error.message,
-//       });
-//     }
-//   };
+      if (!uPermission) {
+        return res
+          .status(403)
+          .send({ message: "This permission is not provided to this member" });
+      }
+
+      next();
+    } catch (error) {
+      console.error("Error while checking permissions:", error);
+      res.status(500).send({
+        success: false,
+        message: "Error while checking permissions",
+        error: error.message,
+      });
+    }
+  };
 
 const isAdmin = (req, res, next) => {
   if (req.user?.role === "admin") {
