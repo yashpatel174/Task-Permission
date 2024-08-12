@@ -15,16 +15,11 @@ const router = express.Router();
 router.post(
   "/create",
   authMiddleware,
-
-  checkPermission(["Create"], (req) => req.params.moduleName),
+  checkPermission(["Create"]),
   createModule
 );
-router.get(
-  "/",
-  authMiddleware,
-  checkPermission(["FindAll"], (req) => req.params.moduleName),
-  getAllModules
-);
+router.get("/", authMiddleware, checkPermission(["FindAll"]), getSingleModule),
+  getAllModules;
 router.get(
   "/:moduleName",
   authMiddleware,
