@@ -18,14 +18,13 @@ router.post(
   checkPermission(["Create"]),
   createModule
 );
-router.get("/", authMiddleware, checkPermission(["FindAll"]), getSingleModule),
-  getAllModules;
-router.get(
-  "/:moduleName",
-  authMiddleware,
-  checkPermission(["FindOne"], (req) => req.params.moduleName),
-  getSingleModule
-);
+router.get("/", authMiddleware, checkPermission(["FindAll"]), getAllModules),
+  router.get(
+    "/:moduleName",
+    authMiddleware,
+    checkPermission(["FindOne"], (req) => req.params.moduleName),
+    getSingleModule
+  );
 router.patch(
   "/update/:moduleName",
   authMiddleware,
